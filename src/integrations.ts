@@ -29,7 +29,7 @@ export interface IntegrationResult<T = unknown> {
 // ============================================
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 export async function callGemini(
   apiKey: string,
