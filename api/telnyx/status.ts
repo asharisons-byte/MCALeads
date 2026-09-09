@@ -27,13 +27,20 @@ export default async function handler(
     const phoneNumber = process.env.TELNYX_PHONE_NUMBER || '+14052853816';
     const voiceApplicationId = process.env.TELNYX_VOICE_APPLICATION_ID;
 
-    const isConfigured = !!apiKey;
+    const hasApiKey = !!apiKey;
+    const hasPhoneNumber = !!phoneNumber;
+    const hasVoiceApplicationId = !!voiceApplicationId;
+    
+    // Telnyx is configured if we have at least the API key
+    const isConfigured = hasApiKey;
 
-    // Return safe status (no secrets)
+    // Return safe diagnostic status (no secrets)
     return response.status(200).json({
       configured: isConfigured,
+      hasApiKey,
+      hasPhoneNumber,
+      hasVoiceApplicationId,
       phoneNumber: isConfigured ? phoneNumber : null,
-      voiceApplicationConfigured: isConfigured && !!voiceApplicationId,
     });
 
   } catch (error) {
