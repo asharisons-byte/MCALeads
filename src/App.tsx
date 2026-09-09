@@ -80,7 +80,8 @@ type Page =
   | 'team'
   | 'sophia-workforce'
   | 'ops'
-  | 'analytics';
+  | 'analytics'
+  | 'dialer';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -347,6 +348,18 @@ export default function App() {
               {sidebarOpen && <span className="text-sm font-medium">Calls & Dialer</span>}
             </button>
             <button
+              onClick={() => navigateTo('dialer')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'dialer' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">📞</span>
+                {sidebarOpen && <span className="text-sm font-medium">Dialer</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">LIVE</span>}
+            </button>
+            <button
               onClick={() => navigateTo('outreach')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
                 currentPage === 'outreach' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
@@ -474,6 +487,7 @@ export default function App() {
         {currentPage === 'calls' && <CallsPage onViewLead={navigateToLead} />}
         {currentPage === 'emails' && <EmailsPage onViewLead={navigateToLead} />}
         {currentPage === 'sms-outreach' && <SMSOutreachPage onViewLead={navigateToLead} />}
+        {currentPage === 'dialer' && <DialerPage onViewLead={navigateToLead} />}
         {currentPage === 'outreach' && <OutreachPage onViewLead={navigateToLead} />}
         {currentPage === 'client-experience' && <ClientExperiencePage />}
         {currentPage === 'reporting' && <ReportingPage />}
@@ -520,6 +534,10 @@ function DashboardPage({ onNavigate, onViewLead }: { onNavigate: (p: Page) => vo
           <p className="text-gray-400 text-sm">Marketing Charm Agency — Lead Agency Suite</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => onNavigate('dialer')} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <span>📞</span>
+            <span>Dialer</span>
+          </button>
           <button onClick={() => onNavigate('leads')} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
             + New Lead
           </button>
@@ -546,6 +564,24 @@ function DashboardPage({ onNavigate, onViewLead }: { onNavigate: (p: Page) => vo
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Quick Dialer Access */}
+      <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <span>📞</span> Quick Dialer
+            </h3>
+            <p className="text-white/80 text-sm mt-1">Make calls and send SMS messages instantly</p>
+          </div>
+          <button 
+            onClick={() => onNavigate('dialer')}
+            className="px-6 py-3 bg-white text-green-700 hover:bg-gray-100 rounded-lg font-bold transition-colors"
+          >
+            Open Dialer →
+          </button>
+        </div>
       </div>
 
       {/* Recent Activity & Tasks */}
@@ -3559,6 +3595,510 @@ function OpsPage() {
           <strong>Phase 4A:</strong> Multi-agent operations and monitoring dashboard.
         </p>
       </div>
+    </div>
+  );
+}
+
+// ==================== DIALER PAGE ====================
+function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [message, setMessage] = useState('');
+  const [callDuration, setCallDuration] = useState(0);
+  const [isCalling, setIsCalling] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended' | 'failed'>('idle');
+  const [smsStatus, setSmsStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+  const [selectedLead, setSelectedLead] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'dialer' | 'calls' | 'sms'>('dialer');
+  const [callLogs, setCallLogs] = useState<any[]>(() => {
+    const saved = localStorage.getItem('mca_call_logs');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [smsLogs, setSmsLogs] = useState<any[]>(() => {
+    const saved = localStorage.getItem('mca_sms_logs');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const settings = store.getSettings();
+  const telnyxApiKey = settings.apiKey_telnyx;
+  const leads = store.getLeads().filter(l => !l.archived && l.phone);
+
+  // Save logs to localStorage
+  useEffect(() => {
+    localStorage.setItem('mca_call_logs', JSON.stringify(callLogs));
+  }, [callLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('mca_sms_logs', JSON.stringify(smsLogs));
+  }, [smsLogs]);
+
+  // Timer for call duration
+  useEffect(() => {
+    let interval: number;
+    if (callStatus === 'connected') {
+      interval = window.setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => window.clearInterval(interval);
+  }, [callStatus]);
+
+  const handleLeadSelect = (leadId: string) => {
+    setSelectedLead(leadId);
+    const lead = store.getLead(leadId);
+    if (lead) {
+      setPhoneNumber(lead.phone);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleCall = async () => {
+    if (!phoneNumber || !telnyxApiKey) {
+      alert('Please enter a phone number and configure Telnyx API key in Settings');
+      return;
+    }
+
+    setIsCalling(true);
+    setCallStatus('calling');
+    setCallDuration(0);
+
+    try {
+      const result = await initiateTelnyxCall(
+        telnyxApiKey,
+        '+15551234567', // From number - should be configurable
+        phoneNumber,
+        selectedLead || 'manual'
+      );
+
+      if (result.status === 'CONNECTED') {
+        setCallStatus('connected');
+        
+        // Simulate call duration (in real app, this would come from webhooks)
+        setTimeout(() => {
+          setCallStatus('ended');
+          setIsCalling(false);
+          
+          // Log the call
+          const newCallLog = {
+            id: Date.now().toString(),
+            phoneNumber,
+            leadId: selectedLead,
+            leadName: selectedLead ? store.getLead(selectedLead)?.firstName + ' ' + store.getLead(selectedLead)?.lastName : 'Manual',
+            direction: 'outbound',
+            status: 'completed',
+            duration: callDuration,
+            timestamp: new Date().toISOString(),
+            callId: result.data?.call_control_id
+          };
+          
+          setCallLogs(prev => [newCallLog, ...prev]);
+          
+          // Also save to store if lead is selected
+          if (selectedLead) {
+            store.createCall({
+              leadId: selectedLead,
+              direction: 'outbound',
+              status: 'completed',
+              duration: callDuration,
+              transcript: 'Call completed via dialer'
+            });
+          }
+        }, 30000); // Simulate 30 second call
+      } else {
+        setCallStatus('failed');
+        setIsCalling(false);
+        alert(`Call failed: ${result.error}`);
+      }
+    } catch (error) {
+      setCallStatus('failed');
+      setIsCalling(false);
+      alert('Call failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleEndCall = () => {
+    setCallStatus('ended');
+    setIsCalling(false);
+  };
+
+  const handleSendSMS = async () => {
+    if (!phoneNumber || !message || !telnyxApiKey) {
+      alert('Please enter phone number, message, and configure Telnyx API key in Settings');
+      return;
+    }
+
+    setIsSending(true);
+    setSmsStatus('sending');
+
+    try {
+      const result = await sendTelnyxSMS(
+        telnyxApiKey,
+        '+15551234567', // From number - should be configurable
+        phoneNumber,
+        message
+      );
+
+      if (result.status === 'CONNECTED') {
+        setSmsStatus('sent');
+        setMessage('');
+        
+        // Log the SMS
+        const newSmsLog = {
+          id: Date.now().toString(),
+          phoneNumber,
+          leadId: selectedLead,
+          leadName: selectedLead ? store.getLead(selectedLead)?.firstName + ' ' + store.getLead(selectedLead)?.lastName : 'Manual',
+          message,
+          direction: 'outbound',
+          status: 'sent',
+          timestamp: new Date().toISOString(),
+          messageId: result.data?.id
+        };
+        
+        setSmsLogs(prev => [newSmsLog, ...prev]);
+        
+        // Also save to store if lead is selected
+        if (selectedLead) {
+          store.createSMS({
+            leadId: selectedLead,
+            message,
+            status: 'sent'
+          });
+        }
+        
+        setTimeout(() => setSmsStatus('idle'), 3000);
+      } else {
+        setSmsStatus('failed');
+        alert(`SMS failed: ${result.error}`);
+      }
+    } catch (error) {
+      setSmsStatus('failed');
+      alert('SMS failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleDialPad = (digit: string) => {
+    setPhoneNumber(prev => prev + digit);
+  };
+
+  const handleClearNumber = () => {
+    setPhoneNumber('');
+  };
+
+  const handleBackspace = () => {
+    setPhoneNumber(prev => prev.slice(0, -1));
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <span>📞</span> Dialer
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Make calls and send SMS messages using Telnyx</p>
+        </div>
+        {!telnyxApiKey && (
+          <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
+            <p className="text-red-300 text-sm">
+              ⚠️ <strong>Configuration Required:</strong> Add Telnyx API key in Settings to enable calling and SMS
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-gray-700">
+        <button
+          onClick={() => setActiveTab('dialer')}
+          className={`px-6 py-3 font-medium transition-colors ${
+            activeTab === 'dialer'
+              ? 'text-purple-400 border-b-2 border-purple-400'
+              : 'text-gray-400 hover:text-gray-300'
+          }`}
+        >
+          📞 Dialer
+        </button>
+        <button
+          onClick={() => setActiveTab('calls')}
+          className={`px-6 py-3 font-medium transition-colors ${
+            activeTab === 'calls'
+              ? 'text-purple-400 border-b-2 border-purple-400'
+              : 'text-gray-400 hover:text-gray-300'
+          }`}
+        >
+          📋 Call Logs ({callLogs.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('sms')}
+          className={`px-6 py-3 font-medium transition-colors ${
+            activeTab === 'sms'
+              ? 'text-purple-400 border-b-2 border-purple-400'
+              : 'text-gray-400 hover:text-gray-300'
+          }`}
+        >
+          💬 SMS Logs ({smsLogs.length})
+        </button>
+      </div>
+
+      {/* Dialer Tab */}
+      {activeTab === 'dialer' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Side - Dialer */}
+          <div className="space-y-6">
+            {/* Lead Selection */}
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <h3 className="font-semibold text-lg mb-4">Select Lead (Optional)</h3>
+              <select
+                value={selectedLead}
+                onChange={(e) => handleLeadSelect(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500"
+              >
+                <option value="">Manual dialing</option>
+                {leads.map(lead => (
+                  <option key={lead.id} value={lead.id}>
+                    {lead.firstName} {lead.lastName} - {lead.phone}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Phone Display */}
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-center mb-6">
+                <div className="text-4xl font-mono font-bold text-white mb-2">
+                  {phoneNumber || 'Enter number'}
+                </div>
+                {callStatus === 'connected' && (
+                  <div className="text-green-400 text-lg">
+                    Connected - {formatDuration(callDuration)}
+                  </div>
+                )}
+                {callStatus === 'calling' && (
+                  <div className="text-yellow-400 text-lg animate-pulse">
+                    Calling...
+                  </div>
+                )}
+                {smsStatus === 'sending' && (
+                  <div className="text-yellow-400 text-lg animate-pulse">
+                    Sending SMS...
+                  </div>
+                )}
+                {smsStatus === 'sent' && (
+                  <div className="text-green-400 text-lg">
+                    ✓ SMS Sent
+                  </div>
+                )}
+              </div>
+
+              {/* Dial Pad */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(digit => (
+                  <button
+                    key={digit}
+                    onClick={() => handleDialPad(digit)}
+                    className="py-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition-colors"
+                  >
+                    {digit}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBackspace}
+                  className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
+                >
+                  ← Backspace
+                </button>
+                <button
+                  onClick={handleClearNumber}
+                  className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={handleCall}
+                disabled={isCalling || !phoneNumber || !telnyxApiKey}
+                className={`py-4 rounded-lg text-lg font-bold transition-colors ${
+                  isCalling || !phoneNumber || !telnyxApiKey
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                📞 Call
+              </button>
+              <button
+                onClick={handleEndCall}
+                disabled={callStatus !== 'connected'}
+                className={`py-4 rounded-lg text-lg font-bold transition-colors ${
+                  callStatus !== 'connected'
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                📴 End Call
+              </button>
+            </div>
+          </div>
+
+          {/* Right Side - SMS */}
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h3 className="font-semibold text-lg mb-4">Send SMS Message</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">To:</label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Message:</label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  rows={6}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500 resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">{message.length} characters</p>
+              </div>
+              <button
+                onClick={handleSendSMS}
+                disabled={isSending || !phoneNumber || !message || !telnyxApiKey}
+                className={`w-full py-3 rounded-lg text-lg font-bold transition-colors ${
+                  isSending || !phoneNumber || !message || !telnyxApiKey
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                💬 Send SMS
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Logs Tab */}
+      {activeTab === 'calls' && (
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-700">
+            <h3 className="font-semibold text-lg">Call History</h3>
+          </div>
+          <div className="divide-y divide-gray-700">
+            {callLogs.map(log => (
+              <div key={log.id} className="p-4 hover:bg-gray-700/30 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-600/20 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">📞</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{log.leadName}</p>
+                      <p className="text-sm text-gray-400">{log.phoneNumber}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-green-400">
+                      {log.direction === 'outbound' ? 'Outbound' : 'Inbound'}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Duration: {formatDuration(log.duration)}
+                    </p>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      log.status === 'completed' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
+                    }`}>
+                      {log.status}
+                    </span>
+                  </div>
+                </div>
+                {log.leadId && log.leadId !== 'manual' && (
+                  <button
+                    onClick={() => onViewLead(log.leadId)}
+                    className="mt-2 text-sm text-purple-400 hover:text-purple-300"
+                  >
+                    View Lead →
+                  </button>
+                )}
+              </div>
+            ))}
+            {callLogs.length === 0 && (
+              <div className="p-12 text-center text-gray-500">
+                No call logs yet
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SMS Logs Tab */}
+      {activeTab === 'sms' && (
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-700">
+            <h3 className="font-semibold text-lg">SMS History</h3>
+          </div>
+          <div className="divide-y divide-gray-700">
+            {smsLogs.map(log => (
+              <div key={log.id} className="p-4 hover:bg-gray-700/30 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">💬</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{log.leadName}</p>
+                      <p className="text-sm text-gray-400">To: {log.phoneNumber}</p>
+                      <p className="text-sm text-gray-300 mt-1">{log.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      log.status === 'sent' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
+                    }`}>
+                      {log.status}
+                    </span>
+                  </div>
+                </div>
+                {log.leadId && log.leadId !== 'manual' && (
+                  <button
+                    onClick={() => onViewLead(log.leadId)}
+                    className="mt-2 text-sm text-purple-400 hover:text-purple-300"
+                  >
+                    View Lead →
+                  </button>
+                )}
+              </div>
+            ))}
+            {smsLogs.length === 0 && (
+              <div className="p-12 text-center text-gray-500">
+                No SMS logs yet
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
