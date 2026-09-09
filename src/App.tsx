@@ -59,7 +59,12 @@ export default function App() {
       <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-gray-800 border-r border-gray-700 flex flex-col transition-all duration-300`}>
         <div className="p-4 border-b border-gray-700 flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center text-sm font-bold">M</div>
-          {sidebarOpen && <span className="font-bold text-lg">MCA Suite</span>}
+          {sidebarOpen && (
+            <div>
+              <span className="font-bold text-sm block leading-tight">Marketing Charm</span>
+              <span className="text-xs text-gray-400">Lead Agency Suite</span>
+            </div>
+          )}
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {[
@@ -136,7 +141,7 @@ function DashboardPage({ onNavigate, onViewLead }: { onNavigate: (p: Page) => vo
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-gray-400 text-sm">Welcome back to MCA Lead Agency Suite</p>
+          <p className="text-gray-400 text-sm">Marketing Charm Agency — Lead Agency Suite</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => onNavigate('leads')} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
@@ -144,6 +149,13 @@ function DashboardPage({ onNavigate, onViewLead }: { onNavigate: (p: Page) => vo
           </button>
         </div>
       </div>
+
+      {/* Demo Data Notice */}
+      {stats.totalLeads > 0 && (
+        <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+          <p className="text-xs text-blue-300">ℹ️ <strong>Demo Data:</strong> This dashboard shows sample leads and clients. All data is stored locally in your browser. Add your own leads or import from CSV to begin.</p>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -381,7 +393,14 @@ function LeadDetailPage({ leadId, onBack }: { leadId: string; onBack: () => void
       case 'calling_script': content = aiGenerator.generateCallingScript(lead); break;
       case 'loom_script': content = aiGenerator.generateLoomScript(lead); break;
       case 'sms_script': content = aiGenerator.generateSMSScript(lead); break;
-      case 'lead_score_analysis': { const audit = aiGenerator.generateLeadScore(lead); store.createAudit(audit); content = `Score: ${audit.score}/100\n\n${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; break; }
+      case 'lead_score_analysis': { 
+        const audit = aiGenerator.generateLeadScore(lead); 
+        store.createAudit(audit);
+        // Update the lead's score in the database
+        store.updateLead(leadId, { score: audit.score });
+        content = `Score: ${audit.score}/100\n\n${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; 
+        break; 
+      }
     }
     store.createAIContent({ leadId, type, content });
     refresh();
@@ -484,7 +503,7 @@ function NotesTab({ leadId, notes, onRefresh }: { leadId: string; notes: CRMNote
 
   const addNote = () => {
     if (!newNote.trim()) return;
-    store.createNote({ leadId, content: newNote, type: noteType, createdBy: 'Sophia AI' });
+    store.createNote({ leadId, content: newNote, type: noteType, createdBy: 'Sophia' });
     setNewNote('');
     onRefresh();
   };
@@ -896,7 +915,14 @@ function AIPage({ onViewLead }: { onViewLead: (id: string) => void }) {
       case 'calling_script': content = aiGenerator.generateCallingScript(lead); break;
       case 'sms_script': content = aiGenerator.generateSMSScript(lead); break;
       case 'loom_script': content = aiGenerator.generateLoomScript(lead); break;
-      case 'score': { const audit = aiGenerator.generateLeadScore(lead); content = `Lead Score: ${audit.score}/100\n\nRecommendation: ${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; break; }
+      case 'score': { 
+        const audit = aiGenerator.generateLeadScore(lead); 
+        store.createAudit(audit);
+        // Update the lead's score in the database
+        store.updateLead(selectedLead, { score: audit.score });
+        content = `Lead Score: ${audit.score}/100\n\nRecommendation: ${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; 
+        break; 
+      }
     }
     setGeneratedContent(content);
     store.createAIContent({ leadId: selectedLead, type: contentType as AIContent['type'], content });
@@ -1147,8 +1173,8 @@ function SettingsPage() {
               <p className="text-xs text-gray-400">AI content generation</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_gemini ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-                {settings.apiKey_gemini ? 'Connected' : 'Not Configured'}
+              <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_gemini ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+                {settings.apiKey_gemini ? 'Key Configured' : 'Configuration Required'}
               </span>
             </div>
           </div>
@@ -1162,13 +1188,23 @@ function SettingsPage() {
               <p className="font-medium text-sm">Telnyx Voice</p>
               <p className="text-xs text-gray-400">AI-powered calling</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.telnyxVoiceConnected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.telnyxVoiceConnected ? 'Connected' : 'Not Configured'}
+            <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_telnyx ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {settings.apiKey_telnyx ? 'Key Configured' : 'Configuration Required'}
             </span>
           </div>
           <div>
             <label className="text-sm text-gray-400 block mb-1">Telnyx API Key</label>
-            <input type="password" value={settings.apiKey_telnyx} onChange={e => setSettings({ ...settings, apiKey_telnyx: e.target.value, telnyxVoiceConnected: !!e.target.value, telnyxSMSConnected: !!e.target.value })} placeholder="Enter API key..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500" />
+            <input type="password" value={settings.apiKey_telnyx} onChange={e => setSettings({ ...settings, apiKey_telnyx: e.target.value })} placeholder="Enter API key..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500" />
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+            <div>
+              <p className="font-medium text-sm">Telnyx SMS</p>
+              <p className="text-xs text-gray-400">SMS messaging</p>
+            </div>
+            <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_telnyx ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {settings.apiKey_telnyx ? 'Key Configured' : 'Configuration Required'}
+            </span>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
@@ -1176,8 +1212,8 @@ function SettingsPage() {
               <p className="font-medium text-sm">Gmail Integration</p>
               <p className="text-xs text-gray-400">Send emails via Gmail</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.gmailConnected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.gmailConnected ? 'Connected' : 'Not Configured'}
+            <span className={`text-xs px-2 py-1 rounded ${settings.gmailConnected ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {settings.gmailConnected ? 'OAuth Pending' : 'Configuration Required'}
             </span>
           </div>
 
@@ -1186,13 +1222,13 @@ function SettingsPage() {
               <p className="font-medium text-sm">n8n Webhooks</p>
               <p className="text-xs text-gray-400">Workflow automation</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.n8nConnected ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.n8nConnected ? 'Connected' : 'Not Configured'}
+            <span className={`text-xs px-2 py-1 rounded ${settings.webhook_n8n ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {settings.webhook_n8n ? 'URL Configured' : 'Configuration Required'}
             </span>
           </div>
           <div>
             <label className="text-sm text-gray-400 block mb-1">n8n Webhook URL</label>
-            <input value={settings.webhook_n8n} onChange={e => setSettings({ ...settings, webhook_n8n: e.target.value, n8nConnected: !!e.target.value })} placeholder="https://n8n.example.com/webhook/..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500" />
+            <input value={settings.webhook_n8n} onChange={e => setSettings({ ...settings, webhook_n8n: e.target.value })} placeholder="https://n8n.example.com/webhook/..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500" />
           </div>
         </div>
       </div>

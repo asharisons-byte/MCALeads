@@ -358,6 +358,7 @@ export const store = {
       status: 'active',
     });
     store.updateLead(leadId, { status: 'won' });
+    store.addActivity(leadId, 'status_change', `Lead converted to client: ${client.name}`);
     return client;
   },
 };
@@ -381,11 +382,11 @@ export const aiGenerator = {
   generatePitch: (lead: Lead): string => {
     return `Dear ${lead.firstName},
 
-I hope this message finds you well. I'm reaching out from Marketing Charm Agency because I noticed ${lead.company} is positioned for significant growth in the ${lead.industry} space.
+I hope this message finds you well. I'm Sophia from Marketing Charm Agency. I noticed ${lead.company} is positioned for significant growth in the ${lead.industry} space.
 
-Based on our analysis, companies like yours with ${lead.employees} employees and $${lead.revenue} in revenue typically see 3-5x ROI when implementing our data-driven marketing strategies.
+Based on our analysis, companies like yours with ${lead.employees} employees and ${lead.revenue} in revenue typically see 3-5x ROI when implementing our data-driven marketing strategies.
 
-Here's what makes us different:
+Here's what makes Marketing Charm Agency different:
 • AI-powered lead scoring that identifies your best prospects
 • Automated multi-channel outreach (email, SMS, calls)
 • Real-time analytics and optimization
@@ -393,10 +394,10 @@ Here's what makes us different:
 
 I'd love to schedule a 15-minute call to discuss how we can help ${lead.company} achieve its growth targets.
 
-Would ${lead.firstName === 'John' ? 'Tuesday' : 'Wednesday'} at 2 PM work for a quick chat?
+Would you have time this week for a quick chat?
 
 Best regards,
-Sophia AI
+Sophia
 Marketing Charm Agency`;
   },
 
@@ -404,27 +405,29 @@ Marketing Charm Agency`;
     const subject = `Quick question about ${lead.company}'s growth strategy`;
     const body = `Hi ${lead.firstName},
 
-I came across ${lead.company} and was impressed by what you're building in the ${lead.industry} industry.
+I'm Sophia from Marketing Charm Agency. I came across ${lead.company} and was impressed by what you're building in the ${lead.industry} industry.
 
-We've helped similar companies increase their qualified leads by 200% in just 90 days using our AI-driven marketing system.
+We've helped similar ${lead.industry} companies increase their qualified leads by 200% in just 90 days using our AI-driven marketing system at Marketing Charm Agency.
 
 Would you be open to a brief 15-minute call this week to explore if there's a fit?
 
 No pressure either way - just wanted to reach out.
 
-Best,
+Best regards,
+Sophia
 Marketing Charm Agency`;
     return { subject, body };
   },
 
   generateCallingScript: (lead: Lead): string => {
     return `CALLING SCRIPT FOR: ${lead.firstName} ${lead.lastName} - ${lead.company}
+Prepared by: Sophia | Marketing Charm Agency
 
 OPENING (15 seconds):
-"Hi ${lead.firstName}, this is [Your Name] from Marketing Charm Agency. I know you're busy, so I'll be brief. I'm calling because we've been working with ${lead.industry} companies like yours and found some interesting opportunities. Do you have 2 minutes?"
+"Hi ${lead.firstName}, this is Sophia from Marketing Charm Agency. I know you're busy, so I'll be brief. I'm calling because we've been working with ${lead.industry} companies like yours and found some interesting opportunities. Do you have 2 minutes?"
 
 VALUE PROPOSITION (30 seconds):
-"We specialize in helping ${lead.industry} companies like ${lead.company} generate more qualified leads using AI-powered marketing. Our clients typically see a 3-5x return on their marketing investment within the first quarter."
+"At Marketing Charm Agency, we specialize in helping ${lead.industry} companies like ${lead.company} generate more qualified leads using AI-powered marketing. Our clients typically see a 3-5x return on their marketing investment within the first quarter."
 
 QUALIFICATION QUESTIONS:
 1. "How are you currently handling your lead generation?"
@@ -433,43 +436,49 @@ QUALIFICATION QUESTIONS:
 4. "What does your ideal customer look like?"
 
 CLOSE:
-"Based on what you've shared, I think we could really help. Would it make sense to schedule a 30-minute deep dive where I can show you exactly how this would work for ${lead.company}? I have availability ${lead.firstName === 'John' ? 'Tuesday or Wednesday' : 'Thursday or Friday'}."
+"Based on what you've shared, I think Marketing Charm Agency could really help. Would it make sense to schedule a 30-minute deep dive where I can show you exactly how this would work for ${lead.company}? I have availability later this week."
 
 OBJECTION HANDLING:
 - "Not interested" → "I understand. Just out of curiosity, is it the timing or the offering?"
 - "Send me info" → "Absolutely, I'll send that over. When would be a good time to follow up?"
-- "We have someone" → "That's great! Most of our clients did too. We usually complement existing efforts."`;
+- "We have someone" → "That's great! Most of our clients at Marketing Charm Agency did too. We usually complement existing efforts."`;
   },
 
   generateLoomScript: (lead: Lead): string => {
     return `LOOM VIDEO SCRIPT FOR: ${lead.company}
+Prepared by: Sophia | Marketing Charm Agency
 
 [0:00-0:15] INTRO:
-"Hey ${lead.firstName}! I made this quick video specifically for ${lead.company} because I noticed something interesting about your current marketing approach."
+"Hey ${lead.firstName}! I'm Sophia from Marketing Charm Agency. I made this quick video specifically for ${lead.company} because I noticed something interesting about your current marketing approach."
 
 [0:15-0:45] THE PROBLEM:
 "Looking at the ${lead.industry} space, most companies your size are leaving money on the table because their lead generation isn't optimized for today's digital landscape."
 
 [0:45-1:30] THE SOLUTION:
-"Here's what we'd do for ${lead.company}: [Show dashboard/case study]. This is exactly the kind of system we'd build for you."
+"Here's what we'd do for ${lead.company} at Marketing Charm Agency: [Show dashboard/case study]. This is exactly the kind of system we'd build for you."
 
 [1:30-2:00] SOCIAL PROOF:
-"We did something similar for [Client Name] and they saw [specific result] in just [timeframe]."
+"We did something similar for another ${lead.industry} company and they saw a 200% increase in qualified leads in just 90 days."
 
 [2:00-2:15] CTA:
-"I'd love to walk you through this live. Here's my calendar link - pick a time that works for you. Talk soon!"`;
+"I'd love to walk you through this live. Here's my calendar link - pick a time that works for you. Talk soon!
+- Sophia, Marketing Charm Agency"`;
   },
 
   generateSMSScript: (lead: Lead): string => {
-    return `SMS TEMPLATES FOR: ${lead.firstName} ${lead.lastName}
+    return `SMS TEMPLATES FOR: ${lead.firstName} ${lead.lastName} - ${lead.company}
+Prepared by: Sophia | Marketing Charm Agency
 
 TEMPLATE 1 (Initial):
-"Hi ${lead.firstName}! This is Sophia from Marketing Charm Agency. I noticed ${lead.company} could benefit from our AI marketing system. Quick 2-min chat this week? Reply YES or call ${lead.phone}"
+"Hi ${lead.firstName}! This is Sophia from Marketing Charm Agency. I noticed ${lead.company} could benefit from our AI marketing system. Quick 2-min chat this week? Reply YES to learn more."
 
 TEMPLATE 2 (Follow-up):
-"Hey ${lead.firstName}, just following up! We helped a similar ${lead.industry} company increase leads by 200%. Worth a quick call? - Sophia"
+"Hey ${lead.firstName}, Sophia here from Marketing Charm Agency. We helped a similar ${lead.industry} company increase leads by 200%. Worth a quick call?"
 
 TEMPLATE 3 (Value-add):
-"${lead.firstName}, I put together a quick analysis of ${lead.company}'s online presence. Mind if I send it over? No strings attached. - Sophia"`;
+"${lead.firstName}, Sophia from Marketing Charm Agency here. I put together a quick analysis of ${lead.company}'s online presence. Mind if I send it over? No strings attached."
+
+TEMPLATE 4 (Breakup):
+"Hi ${lead.firstName}, I don't want to be a bother! If now isn't the right time for ${lead.company}, no worries at all. Just let me know. - Sophia, Marketing Charm Agency"`;
   },
 };
