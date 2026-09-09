@@ -14,12 +14,17 @@ import type {
 // Icons (using emoji/lucide-style inline SVGs for key icons)
 const Icons = {
   dashboard: '📊',
+  command: '🎯',
   leads: '👥',
   kanban: '📋',
   clients: '💼',
   ai: '🤖',
+  aiWorkforce: '🧠',
   calls: '📞',
   emails: '✉️',
+  outreach: '📢',
+  clientExperience: '🌟',
+  reporting: '📊',
   settings: '⚙️',
   analytics: '📈',
   plus: '+',
@@ -42,7 +47,7 @@ const Icons = {
   export: '📤',
 };
 
-type Page = 'dashboard' | 'leads' | 'lead-detail' | 'kanban' | 'clients' | 'ai' | 'calls' | 'emails' | 'settings' | 'analytics';
+type Page = 'dashboard' | 'command' | 'leads' | 'lead-detail' | 'kanban' | 'clients' | 'ai' | 'ai-workforce' | 'calls' | 'emails' | 'outreach' | 'client-experience' | 'reporting' | 'settings' | 'analytics';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -72,30 +77,128 @@ export default function App() {
             </div>
           )}
         </div>
-        <nav className="flex-1 p-2 space-y-1">
-          {[
-            { id: 'dashboard' as Page, icon: Icons.dashboard, label: 'Dashboard' },
-            { id: 'leads' as Page, icon: Icons.leads, label: 'Leads' },
-            { id: 'kanban' as Page, icon: Icons.kanban, label: 'Pipeline' },
-            { id: 'clients' as Page, icon: Icons.clients, label: 'Clients' },
-            { id: 'ai' as Page, icon: Icons.ai, label: 'Sophia AI' },
-            { id: 'calls' as Page, icon: Icons.calls, label: 'Calls' },
-            { id: 'emails' as Page, icon: Icons.emails, label: 'Emails' },
-            { id: 'analytics' as Page, icon: Icons.analytics, label: 'Analytics' },
-            { id: 'settings' as Page, icon: Icons.settings, label: 'Settings' },
-          ].map(item => (
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {/* Command Center */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Command Center</div>}
             <button
-              key={item.id}
-              onClick={() => navigateTo(item.id)}
+              onClick={() => navigateTo('command')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                currentPage === item.id || (currentPage === 'lead-detail' && item.id === 'leads')
-                  ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                currentPage === 'command' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
-              {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+              <span className="text-lg">{Icons.command}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Command Center</span>}
             </button>
-          ))}
+          </div>
+
+          {/* CRM */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">CRM</div>}
+            {[
+              { id: 'leads' as Page, icon: Icons.leads, label: 'Leads' },
+              { id: 'kanban' as Page, icon: Icons.kanban, label: 'Pipeline' },
+              { id: 'clients' as Page, icon: Icons.clients, label: 'Clients' },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => navigateTo(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  currentPage === item.id || (currentPage === 'lead-detail' && item.id === 'leads')
+                    ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* AI Workforce */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">AI Workforce</div>}
+            {[
+              { id: 'ai' as Page, icon: Icons.ai, label: 'Sophia AI' },
+              { id: 'ai-workforce' as Page, icon: Icons.aiWorkforce, label: 'AI Agents' },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => navigateTo(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  currentPage === item.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Outreach */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Outreach</div>}
+            {[
+              { id: 'outreach' as Page, icon: Icons.outreach, label: 'Campaigns' },
+              { id: 'calls' as Page, icon: Icons.calls, label: 'Calls' },
+              { id: 'emails' as Page, icon: Icons.emails, label: 'Emails' },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => navigateTo(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  currentPage === item.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Client Experience */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Client Experience</div>}
+            <button
+              onClick={() => navigateTo('client-experience')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                currentPage === 'client-experience' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.clientExperience}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Client Portal</span>}
+            </button>
+          </div>
+
+          {/* Reporting */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Reporting</div>}
+            {[
+              { id: 'reporting' as Page, icon: Icons.reporting, label: 'Reports' },
+              { id: 'analytics' as Page, icon: Icons.analytics, label: 'Analytics' },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => navigateTo(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  currentPage === item.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Settings */}
+          <button
+            onClick={() => navigateTo('settings')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              currentPage === 'settings' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+            }`}
+          >
+            <span className="text-lg">{Icons.settings}</span>
+            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
+          </button>
         </nav>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-3 border-t border-gray-700 text-gray-400 hover:text-white">
           {sidebarOpen ? '◀ Collapse' : '▶'}
@@ -105,13 +208,18 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {currentPage === 'dashboard' && <DashboardPage onNavigate={navigateTo} onViewLead={navigateToLead} />}
+        {currentPage === 'command' && <CommandCenterPage onNavigate={navigateTo} onViewLead={navigateToLead} />}
         {currentPage === 'leads' && <LeadsPage onViewLead={navigateToLead} />}
         {currentPage === 'lead-detail' && selectedLeadId && <LeadDetailPage leadId={selectedLeadId} onBack={() => navigateTo('leads')} />}
         {currentPage === 'kanban' && <KanbanPage onViewLead={navigateToLead} />}
         {currentPage === 'clients' && <ClientsPage />}
         {currentPage === 'ai' && <AIPage onViewLead={navigateToLead} />}
+        {currentPage === 'ai-workforce' && <AIWorkforcePage />}
         {currentPage === 'calls' && <CallsPage onViewLead={navigateToLead} />}
         {currentPage === 'emails' && <EmailsPage onViewLead={navigateToLead} />}
+        {currentPage === 'outreach' && <OutreachPage onViewLead={navigateToLead} />}
+        {currentPage === 'client-experience' && <ClientExperiencePage />}
+        {currentPage === 'reporting' && <ReportingPage />}
         {currentPage === 'analytics' && <AnalyticsPage />}
         {currentPage === 'settings' && <SettingsPage />}
       </main>
@@ -1911,6 +2019,713 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
             <button onClick={handleImport} className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">Import</button>
             {result && <button onClick={onImported} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition-colors">Done</button>}
             <button onClick={onClose} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== COMMAND CENTER PAGE ====================
+function CommandCenterPage({ onNavigate, onViewLead }: { onNavigate: (p: Page) => void; onViewLead: (id: string) => void }) {
+  const [stats, setStats] = useState<DashboardStats>(store.getDashboardStats());
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [hotLeads, setHotLeads] = useState<Lead[]>([]);
+  const [urgentTasks, setUrgentTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    setStats(store.getDashboardStats());
+    const allLeads = store.getLeads().filter(l => !l.archived);
+    setHotLeads(allLeads.filter(l => l.score >= 80).sort((a, b) => b.score - a.score).slice(0, 5));
+    
+    const allTasks = store.getTasks();
+    setUrgentTasks(allTasks.filter(t => t.priority === 'urgent' && t.status !== 'completed').slice(0, 5));
+    
+    // Get recent activities from all leads
+    const activities: any[] = [];
+    allLeads.forEach(lead => {
+      const leadActivities = store.getActivities(lead.id);
+      activities.push(...leadActivities.map(a => ({ ...a, lead })));
+    });
+    setRecentActivities(activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10));
+  }, []);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <span>🎯</span> Command Center
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Mission control for your agency operations</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => onNavigate('leads')} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
+            + New Lead
+          </button>
+          <button onClick={() => onNavigate('outreach')} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
+            📢 Launch Campaign
+          </button>
+        </div>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Total Leads</p>
+          <p className="text-3xl font-bold text-white mt-1">{stats.totalLeads}</p>
+          <p className="text-white/60 text-xs mt-1">+{stats.newLeads} new</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Won Deals</p>
+          <p className="text-3xl font-bold text-white mt-1">{stats.wonLeads}</p>
+          <p className="text-white/60 text-xs mt-1">{stats.conversionRate}% conversion</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Active Clients</p>
+          <p className="text-3xl font-bold text-white mt-1">{stats.totalClients}</p>
+          <p className="text-white/60 text-xs mt-1">${stats.totalMRR.toLocaleString()} MRR</p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Calls Today</p>
+          <p className="text-3xl font-bold text-white mt-1">{stats.callsToday}</p>
+          <p className="text-white/60 text-xs mt-1">{stats.emailsToday} emails</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Urgent Tasks</p>
+          <p className="text-3xl font-bold text-white mt-1">{urgentTasks.length}</p>
+          <p className="text-white/60 text-xs mt-1">{stats.tasksPending} pending</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Hot Leads */}
+        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <span>🔥</span> Hot Leads
+            </h3>
+            <button onClick={() => onNavigate('leads')} className="text-purple-400 text-sm hover:text-purple-300">View All →</button>
+          </div>
+          <div className="space-y-3">
+            {hotLeads.map(lead => (
+              <button key={lead.id} onClick={() => onViewLead(lead.id)} className="w-full flex items-center justify-between p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors text-left">
+                <div>
+                  <p className="font-medium text-sm">{lead.firstName} {lead.lastName}</p>
+                  <p className="text-gray-400 text-xs">{lead.company}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-yellow-400 text-lg font-bold">⭐ {lead.score}</span>
+                  <StatusBadge status={lead.status} />
+                </div>
+              </button>
+            ))}
+            {hotLeads.length === 0 && <p className="text-gray-500 text-sm text-center py-4">No hot leads yet</p>}
+          </div>
+        </div>
+
+        {/* Urgent Tasks */}
+        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <span>⚡</span> Urgent Tasks
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {urgentTasks.map(task => {
+              const lead = store.getLead(task.leadId);
+              return (
+                <div key={task.id} className="p-3 bg-red-900/20 border border-red-700 rounded-lg">
+                  <p className="font-medium text-sm">{task.title}</p>
+                  {lead && <p className="text-gray-400 text-xs mt-1">{lead.firstName} {lead.lastName}</p>}
+                  <p className="text-xs text-red-300 mt-2">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
+                </div>
+              );
+            })}
+            {urgentTasks.length === 0 && <p className="text-gray-500 text-sm text-center py-4">No urgent tasks</p>}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <span>📋</span> Recent Activity
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {recentActivities.slice(0, 8).map((activity, idx) => (
+              <div key={idx} className="p-2 bg-gray-700/30 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm">
+                    {activity.type === 'call' && '📞'}
+                    {activity.type === 'email' && '✉️'}
+                    {activity.type === 'note' && '📝'}
+                    {activity.type === 'status_change' && '🔄'}
+                    {activity.type === 'created' && '✨'}
+                    {activity.type === 'ai_generated' && '🤖'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-300 truncate">{activity.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {activity.lead?.firstName} {activity.lead?.lastName} • {new Date(activity.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {recentActivities.length === 0 && <p className="text-gray-500 text-sm text-center py-4">No recent activity</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <button onClick={() => onNavigate('leads')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-left">
+            <span className="text-2xl">👥</span>
+            <p className="font-medium text-sm mt-2">Manage Leads</p>
+          </button>
+          <button onClick={() => onNavigate('ai')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-left">
+            <span className="text-2xl">🤖</span>
+            <p className="font-medium text-sm mt-2">Generate AI Content</p>
+          </button>
+          <button onClick={() => onNavigate('outreach')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-left">
+            <span className="text-2xl">📢</span>
+            <p className="font-medium text-sm mt-2">Launch Outreach</p>
+          </button>
+          <button onClick={() => onNavigate('reporting')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-left">
+            <span className="text-2xl">📊</span>
+            <p className="font-medium text-sm mt-2">View Reports</p>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== AI WORKFORCE PAGE ====================
+function AIWorkforcePage() {
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const settings = store.getSettings();
+  const geminiConfigured = !!settings.apiKey_gemini;
+
+  const agents = [
+    {
+      id: 'sophia',
+      name: 'Sophia',
+      role: 'Primary AI Assistant',
+      description: 'Lead scoring, content generation, call analysis, and strategic recommendations',
+      icon: '🧠',
+      capabilities: ['Lead Scoring', 'AI Pitch Generation', 'Email Writing', 'Call Scripts', 'SMS Templates', 'Call Summaries'],
+      status: geminiConfigured ? 'active' : 'configuration_required',
+    },
+    {
+      id: 'outreach-agent',
+      name: 'Outreach Agent',
+      role: 'Multi-Channel Campaign Manager',
+      description: 'Automates email sequences, call campaigns, and SMS follow-ups',
+      icon: '📢',
+      capabilities: ['Email Sequences', 'Call Campaigns', 'SMS Blasts', 'Follow-up Automation'],
+      status: geminiConfigured ? 'active' : 'configuration_required',
+    },
+    {
+      id: 'analytics-agent',
+      name: 'Analytics Agent',
+      role: 'Data Analysis & Reporting',
+      description: 'Generates insights, trends, and performance reports',
+      icon: '📊',
+      capabilities: ['Performance Reports', 'Trend Analysis', 'Conversion Tracking', 'ROI Calculation'],
+      status: 'active',
+    },
+    {
+      id: 'client-agent',
+      name: 'Client Success Agent',
+      role: 'Client Onboarding & Support',
+      description: 'Manages client onboarding, satisfaction tracking, and retention',
+      icon: '🌟',
+      capabilities: ['Onboarding Workflows', 'Satisfaction Surveys', 'Retention Strategies', 'Upsell Opportunities'],
+      status: 'active',
+    },
+  ];
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🧠</span> AI Workforce
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Your team of AI agents working 24/7 for your agency</p>
+      </div>
+
+      {!geminiConfigured && (
+        <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4">
+          <p className="text-yellow-300 text-sm">
+            ⚠️ <strong>Configuration Required:</strong> Add your Gemini API key in Settings to activate AI agents with real intelligence.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {agents.map(agent => (
+          <div key={agent.id} className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition-colors">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">{agent.icon}</span>
+                <div>
+                  <h3 className="font-bold text-lg">{agent.name}</h3>
+                  <p className="text-sm text-purple-400">{agent.role}</p>
+                </div>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded ${
+                agent.status === 'active' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
+              }`}>
+                {agent.status === 'active' ? '● Active' : '⚠ Needs Config'}
+              </span>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">{agent.description}</p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 uppercase tracking-wider">Capabilities</p>
+              <div className="flex flex-wrap gap-2">
+                {agent.capabilities.map(cap => (
+                  <span key={cap} className="text-xs px-2 py-1 bg-gray-700 rounded">{cap}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* AI Activity Log */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Recent AI Activity</h3>
+        <div className="space-y-3">
+          {store.getLeads().slice(0, 5).map(lead => {
+            const aiContent = store.getAIContent(lead.id);
+            if (aiContent.length === 0) return null;
+            return (
+              <div key={lead.id} className="p-3 bg-gray-700/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{lead.firstName} {lead.lastName}</p>
+                    <p className="text-xs text-gray-400">{lead.company}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-purple-400">{aiContent.length} AI actions</p>
+                    <p className="text-xs text-gray-500">{aiContent[aiContent.length - 1].type.replace('_', ' ')}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== OUTREACH PAGE ====================
+function OutreachPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+
+  useEffect(() => {
+    // Load campaigns from localStorage or initialize with sample data
+    const saved = localStorage.getItem('mca_campaigns');
+    if (saved) {
+      setCampaigns(JSON.parse(saved));
+    } else {
+      const sampleCampaigns = [
+        {
+          id: '1',
+          name: 'Q1 Tech Industry Outreach',
+          status: 'active',
+          leads: 15,
+          emails: 12,
+          calls: 8,
+          responses: 3,
+          createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+        },
+        {
+          id: '2',
+          name: 'Healthcare Follow-up Sequence',
+          status: 'completed',
+          leads: 8,
+          emails: 8,
+          calls: 5,
+          responses: 2,
+          createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
+        },
+      ];
+      setCampaigns(sampleCampaigns);
+      localStorage.setItem('mca_campaigns', JSON.stringify(sampleCampaigns));
+    }
+  }, []);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <span>📢</span> Outreach Campaigns
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Manage multi-channel outreach campaigns</p>
+        </div>
+        <button onClick={() => setShowCreateCampaign(true)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
+          + Create Campaign
+        </button>
+      </div>
+
+      {/* Campaign Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Active Campaigns</p>
+          <p className="text-2xl font-bold">{campaigns.filter(c => c.status === 'active').length}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Total Leads</p>
+          <p className="text-2xl font-bold">{campaigns.reduce((sum, c) => sum + c.leads, 0)}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Emails Sent</p>
+          <p className="text-2xl font-bold">{campaigns.reduce((sum, c) => sum + c.emails, 0)}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Response Rate</p>
+          <p className="text-2xl font-bold">
+            {campaigns.reduce((sum, c) => sum + c.leads, 0) > 0 
+              ? Math.round((campaigns.reduce((sum, c) => sum + c.responses, 0) / campaigns.reduce((sum, c) => sum + c.leads, 0)) * 100)
+              : 0}%
+          </p>
+        </div>
+      </div>
+
+      {/* Campaigns List */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-700/50">
+            <tr>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Campaign</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Leads</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Emails</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Calls</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Responses</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Created</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {campaigns.map(campaign => (
+              <tr key={campaign.id} className="hover:bg-gray-700/30">
+                <td className="px-4 py-3">
+                  <p className="font-medium text-sm">{campaign.name}</p>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    campaign.status === 'active' ? 'bg-green-900 text-green-300' :
+                    campaign.status === 'completed' ? 'bg-blue-900 text-blue-300' :
+                    'bg-gray-700 text-gray-300'
+                  }`}>
+                    {campaign.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm">{campaign.leads}</td>
+                <td className="px-4 py-3 text-sm">{campaign.emails}</td>
+                <td className="px-4 py-3 text-sm">{campaign.calls}</td>
+                <td className="px-4 py-3 text-sm text-green-400">{campaign.responses}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{new Date(campaign.createdAt).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {campaigns.length === 0 && <p className="text-gray-500 text-center py-8">No campaigns yet. Create your first campaign to get started.</p>}
+      </div>
+
+      {showCreateCampaign && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-lg border border-gray-700">
+            <h2 className="text-xl font-bold mb-4">Create New Campaign</h2>
+            <p className="text-sm text-gray-400 mb-4">Campaign creation will be available in the next update. For now, use the Sophia AI page to generate content for individual leads.</p>
+            <button onClick={() => setShowCreateCampaign(false)} className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== CLIENT EXPERIENCE PAGE ====================
+function ClientExperiencePage() {
+  const clients = store.getClients();
+  const activeClients = clients.filter(c => c.status === 'active');
+  const totalMRR = activeClients.reduce((sum, c) => sum + c.mrr, 0);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🌟</span> Client Experience
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Manage client relationships and ensure satisfaction</p>
+      </div>
+
+      {/* Client Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Active Clients</p>
+          <p className="text-3xl font-bold text-white mt-1">{activeClients.length}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Monthly Revenue</p>
+          <p className="text-3xl font-bold text-white mt-1">${totalMRR.toLocaleString()}</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Annual Revenue</p>
+          <p className="text-3xl font-bold text-white mt-1">${(totalMRR * 12).toLocaleString()}</p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Avg. Client Value</p>
+          <p className="text-3xl font-bold text-white mt-1">
+            ${activeClients.length > 0 ? Math.round(totalMRR / activeClients.length).toLocaleString() : 0}
+          </p>
+        </div>
+      </div>
+
+      {/* Client Onboarding */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Client Onboarding Checklist</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
+            <span className="text-green-400">✓</span>
+            <span className="text-sm">Welcome email sent</span>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
+            <span className="text-green-400">✓</span>
+            <span className="text-sm">Initial consultation scheduled</span>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
+            <span className="text-yellow-400">○</span>
+            <span className="text-sm">Service agreement signed</span>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
+            <span className="text-yellow-400">○</span>
+            <span className="text-sm">Onboarding call completed</span>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
+            <span className="text-gray-500">○</span>
+            <span className="text-sm">First deliverable sent</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Client Satisfaction */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Client Satisfaction Tracking</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-2">Overall Satisfaction</p>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">⭐</span>
+              <span className="text-2xl font-bold">4.8</span>
+              <span className="text-sm text-gray-400">/ 5.0</span>
+            </div>
+          </div>
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-2">Response Time</p>
+            <p className="text-2xl font-bold">&lt; 24h</p>
+            <p className="text-xs text-green-400 mt-1">✓ Excellent</p>
+          </div>
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-2">Retention Rate</p>
+            <p className="text-2xl font-bold">95%</p>
+            <p className="text-xs text-green-400 mt-1">✓ Above Target</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Clients */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Active Clients</h3>
+        <div className="space-y-3">
+          {activeClients.map(client => (
+            <div key={client.id} className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+              <div>
+                <p className="font-medium">{client.name}</p>
+                <p className="text-sm text-gray-400">{client.company}</p>
+                <p className="text-xs text-gray-500 mt-1">Service: {client.service}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-green-400">${client.mrr.toLocaleString()}/mo</p>
+                <p className="text-xs text-gray-400">Since {new Date(client.startDate).toLocaleDateString()}</p>
+              </div>
+            </div>
+          ))}
+          {activeClients.length === 0 && <p className="text-gray-500 text-center py-4">No active clients yet</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== REPORTING PAGE ====================
+function ReportingPage() {
+  const leads = store.getLeads().filter(l => !l.archived);
+  const clients = store.getClients();
+  const calls = store.getCalls();
+  const emails = store.getEmails();
+  const tasks = store.getTasks();
+
+  const totalMRR = clients.filter(c => c.status === 'active').reduce((sum, c) => sum + c.mrr, 0);
+  const conversionRate = leads.length > 0 ? Math.round((leads.filter(l => l.status === 'won').length / leads.length) * 100) : 0;
+  const avgLeadScore = leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + l.score, 0) / leads.length) : 0;
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <span>📊</span> Reports & Analytics
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Comprehensive reporting for your agency</p>
+        </div>
+        <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
+          📥 Export Report
+        </button>
+      </div>
+
+      {/* Key Performance Indicators */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Key Performance Indicators</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg border border-blue-500/30">
+            <p className="text-xs text-blue-300 mb-1">Total Leads</p>
+            <p className="text-3xl font-bold">{leads.length}</p>
+            <p className="text-xs text-gray-400 mt-1">+{leads.filter(l => l.status === 'new').length} new</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg border border-green-500/30">
+            <p className="text-xs text-green-300 mb-1">Conversion Rate</p>
+            <p className="text-3xl font-bold">{conversionRate}%</p>
+            <p className="text-xs text-gray-400 mt-1">{leads.filter(l => l.status === 'won').length} won</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg border border-purple-500/30">
+            <p className="text-xs text-purple-300 mb-1">Monthly Revenue</p>
+            <p className="text-3xl font-bold">${totalMRR.toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-1">{clients.filter(c => c.status === 'active').length} clients</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-lg border border-yellow-500/30">
+            <p className="text-xs text-yellow-300 mb-1">Avg Lead Score</p>
+            <p className="text-3xl font-bold">{avgLeadScore}</p>
+            <p className="text-xs text-gray-400 mt-1">Quality metric</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Activity Report */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <h3 className="font-semibold text-lg mb-4">Communication Activity</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Total Calls</span>
+              <span className="text-xl font-bold">{calls.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Completed Calls</span>
+              <span className="text-xl font-bold text-green-400">{calls.filter(c => c.status === 'completed').length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Total Emails</span>
+              <span className="text-xl font-bold">{emails.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Sent Emails</span>
+              <span className="text-xl font-bold text-green-400">{emails.filter(e => e.status === 'sent').length}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <h3 className="font-semibold text-lg mb-4">Task Management</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Total Tasks</span>
+              <span className="text-xl font-bold">{tasks.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Completed</span>
+              <span className="text-xl font-bold text-green-400">{tasks.filter(t => t.status === 'completed').length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">In Progress</span>
+              <span className="text-xl font-bold text-blue-400">{tasks.filter(t => t.status === 'in_progress').length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Pending</span>
+              <span className="text-xl font-bold text-yellow-400">{tasks.filter(t => t.status === 'pending').length}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pipeline Report */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Pipeline Status Report</h3>
+        <div className="space-y-3">
+          {(['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as LeadStatus[]).map(status => {
+            const count = leads.filter(l => l.status === status).length;
+            const percentage = leads.length > 0 ? (count / leads.length) * 100 : 0;
+            return (
+              <div key={status} className="flex items-center gap-3">
+                <span className="text-sm capitalize w-24 text-gray-400">{status}</span>
+                <div className="flex-1 h-8 bg-gray-700 rounded-lg overflow-hidden">
+                  <div 
+                    className={`h-full flex items-center px-3 text-sm font-medium ${
+                      status === 'won' ? 'bg-green-600' :
+                      status === 'lost' ? 'bg-red-600' :
+                      status === 'new' ? 'bg-blue-600' :
+                      status === 'contacted' ? 'bg-cyan-600' :
+                      status === 'qualified' ? 'bg-yellow-600' :
+                      status === 'proposal' ? 'bg-orange-600' :
+                      'bg-purple-600'
+                    }`}
+                    style={{ width: `${percentage}%` }}
+                  >
+                    {count > 0 && count}
+                  </div>
+                </div>
+                <span className="text-sm font-medium w-12 text-right">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Revenue Report */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Revenue Report</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-1">Monthly Recurring</p>
+            <p className="text-2xl font-bold text-green-400">${totalMRR.toLocaleString()}</p>
+          </div>
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-1">Annual Projection</p>
+            <p className="text-2xl font-bold text-blue-400">${(totalMRR * 12).toLocaleString()}</p>
+          </div>
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-1">Avg Deal Size</p>
+            <p className="text-2xl font-bold text-purple-400">
+              ${clients.filter(c => c.status === 'active').length > 0 
+                ? Math.round(totalMRR / clients.filter(c => c.status === 'active').length).toLocaleString()
+                : 0}
+            </p>
+          </div>
+          <div className="p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-xs text-gray-400 mb-1">Growth Rate</p>
+            <p className="text-2xl font-bold text-yellow-400">+15%</p>
           </div>
         </div>
       </div>
