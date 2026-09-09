@@ -47,7 +47,40 @@ const Icons = {
   export: '📤',
 };
 
-type Page = 'dashboard' | 'command' | 'leads' | 'lead-detail' | 'kanban' | 'clients' | 'ai' | 'ai-workforce' | 'calls' | 'emails' | 'outreach' | 'client-experience' | 'reporting' | 'settings' | 'analytics';
+type Page = 
+  | 'dashboard' 
+  | 'command' 
+  | 'leads' 
+  | 'lead-lists'
+  | 'import-leads'
+  | 'lead-detail' 
+  | 'kanban' 
+  | 'clients' 
+  | 'ai' 
+  | 'ai-workforce' 
+  | 'approval-center'
+  | 'client-portal'
+  | 'white-label'
+  | 'lead-intelligence'
+  | 'ai-lead-analysis'
+  | 'call-intelligence'
+  | 'lead-scoring'
+  | 'opportunities'
+  | 'audits-proposals'
+  | 'follow-up-queue'
+  | 'calls' 
+  | 'emails' 
+  | 'sms-outreach'
+  | 'outreach' 
+  | 'client-experience' 
+  | 'reporting' 
+  | 'revenue-forecast'
+  | 'settings' 
+  | 'integrations'
+  | 'team'
+  | 'sophia-workforce'
+  | 'ops'
+  | 'analytics';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -78,90 +111,116 @@ export default function App() {
           )}
         </div>
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {/* Command Center */}
+          {/* WORKSPACE */}
           <div className="mb-2">
-            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Command Center</div>}
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">WORKSPACE</div>}
             <button
               onClick={() => navigateTo('command')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
                 currentPage === 'command' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
               }`}
             >
-              <span className="text-lg">{Icons.command}</span>
-              {sidebarOpen && <span className="text-sm font-medium">Command Center</span>}
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.command}</span>
+                {sidebarOpen && <span className="text-sm font-medium">Command Center</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-gray-700 px-2 py-0.5 rounded">00</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('dashboard')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'dashboard' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.dashboard}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Dashboard</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('leads')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'leads' || currentPage === 'lead-detail' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.leads}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Leads</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('lead-lists')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'lead-lists' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.leads}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Lead Lists</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('import-leads')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'import-leads' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.import}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Import Leads</span>}
             </button>
           </div>
 
-          {/* CRM */}
+          {/* AI WORKFORCE */}
           <div className="mb-2">
-            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">CRM</div>}
-            {[
-              { id: 'leads' as Page, icon: Icons.leads, label: 'Leads' },
-              { id: 'kanban' as Page, icon: Icons.kanban, label: 'Pipeline' },
-              { id: 'clients' as Page, icon: Icons.clients, label: 'Clients' },
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  currentPage === item.id || (currentPage === 'lead-detail' && item.id === 'leads')
-                    ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
-              </button>
-            ))}
-          </div>
-
-          {/* AI Workforce */}
-          <div className="mb-2">
-            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">AI Workforce</div>}
-            {[
-              { id: 'ai' as Page, icon: Icons.ai, label: 'Sophia AI' },
-              { id: 'ai-workforce' as Page, icon: Icons.aiWorkforce, label: 'AI Agents' },
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  currentPage === item.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
-              </button>
-            ))}
-          </div>
-
-          {/* Outreach */}
-          <div className="mb-2">
-            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Outreach</div>}
-            {[
-              { id: 'outreach' as Page, icon: Icons.outreach, label: 'Campaigns' },
-              { id: 'calls' as Page, icon: Icons.calls, label: 'Calls' },
-              { id: 'emails' as Page, icon: Icons.emails, label: 'Emails' },
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  currentPage === item.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
-              </button>
-            ))}
-          </div>
-
-          {/* Client Experience */}
-          <div className="mb-2">
-            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Client Experience</div>}
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">AI WORKFORCE</div>}
             <button
-              onClick={() => navigateTo('client-experience')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                currentPage === 'client-experience' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              onClick={() => navigateTo('ai')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'ai' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.ai}</span>
+                {sidebarOpen && <span className="text-sm font-medium">Sophia AI</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">Phase 5A</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('ai-workforce')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'ai-workforce' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.aiWorkforce}</span>
+                {sidebarOpen && <span className="text-sm font-medium">Agency AI Workforce</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">7 Agents</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('approval-center')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'approval-center' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">✓</span>
+              {sidebarOpen && <span className="text-sm font-medium">Approval Center</span>}
+            </button>
+          </div>
+
+          {/* CLIENT EXPERIENCE */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">CLIENT EXPERIENCE</div>}
+            <button
+              onClick={() => navigateTo('white-label')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'white-label' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.clientExperience}</span>
+                {sidebarOpen && <span className="text-sm font-medium">White-Label</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">Phase 4B</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('client-portal')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'client-portal' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
               }`}
             >
               <span className="text-lg">{Icons.clientExperience}</span>
@@ -169,36 +228,221 @@ export default function App() {
             </button>
           </div>
 
-          {/* Reporting */}
+          {/* INTELLIGENCE */}
           <div className="mb-2">
-            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1">Reporting</div>}
-            {[
-              { id: 'reporting' as Page, icon: Icons.reporting, label: 'Reports' },
-              { id: 'analytics' as Page, icon: Icons.analytics, label: 'Analytics' },
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  currentPage === item.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {sidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
-              </button>
-            ))}
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">INTELLIGENCE</div>}
+            <button
+              onClick={() => navigateTo('lead-intelligence')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'lead-intelligence' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.search}</span>
+                {sidebarOpen && <span className="text-sm font-medium">Lead Intelligence</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">Phase 3B</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('ai-lead-analysis')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'ai-lead-analysis' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.ai}</span>
+              {sidebarOpen && <span className="text-sm font-medium">AI Lead Analysis</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('call-intelligence')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'call-intelligence' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.calls}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Call Intelligence</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('lead-scoring')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'lead-scoring' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.star}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Lead Scoring (0-100)</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('opportunities')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'opportunities' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">💡</span>
+              {sidebarOpen && <span className="text-sm font-medium">Opportunities</span>}
+            </button>
           </div>
 
-          {/* Settings */}
-          <button
-            onClick={() => navigateTo('settings')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-              currentPage === 'settings' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-            }`}
-          >
-            <span className="text-lg">{Icons.settings}</span>
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-          </button>
+          {/* PIPELINE */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">PIPELINE</div>}
+            <button
+              onClick={() => navigateTo('kanban')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'kanban' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.kanban}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Pipeline / Kanban</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('audits-proposals')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'audits-proposals' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">📋</span>
+              {sidebarOpen && <span className="text-sm font-medium">Audits & Proposals</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('follow-up-queue')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'follow-up-queue' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.clock}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Follow-Up Queue</span>}
+            </button>
+          </div>
+
+          {/* OUTREACH */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">OUTREACH</div>}
+            <button
+              onClick={() => navigateTo('emails')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'emails' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.emails}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Email Outreach</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('sms-outreach')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'sms-outreach' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.sms}</span>
+                {sidebarOpen && <span className="text-sm font-medium">SMS Outreach</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">Phase 3C</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('calls')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'calls' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.calls}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Calls & Dialer</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('outreach')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'outreach' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.outreach}</span>
+                {sidebarOpen && <span className="text-sm font-medium">Hot</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">HOT</span>}
+            </button>
+          </div>
+
+          {/* REPORTING */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">REPORTING</div>}
+            <button
+              onClick={() => navigateTo('analytics')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'analytics' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.analytics}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Analytics</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('revenue-forecast')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'revenue-forecast' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">💰</span>
+              {sidebarOpen && <span className="text-sm font-medium">Revenue Forecast</span>}
+            </button>
+          </div>
+
+          {/* SETTINGS */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">SETTINGS</div>}
+            <button
+              onClick={() => navigateTo('settings')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'settings' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{Icons.settings}</span>
+              {sidebarOpen && <span className="text-sm font-medium">Agency Settings</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('integrations')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'integrations' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">🔌</span>
+              {sidebarOpen && <span className="text-sm font-medium">Integrations</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('team')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'team' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">👥</span>
+              {sidebarOpen && <span className="text-sm font-medium">Team</span>}
+            </button>
+            <button
+              onClick={() => navigateTo('sophia-workforce')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'sophia-workforce' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{Icons.ai}</span>
+                {sidebarOpen && <span className="text-sm font-medium">Sophia & Workforce</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">Phase 4A</span>}
+            </button>
+          </div>
+
+          {/* OPS */}
+          <div className="mb-2">
+            {sidebarOpen && <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-1 font-semibold">OPS</div>}
+            <button
+              onClick={() => navigateTo('ops')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
+                currentPage === 'ops' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">⚙️</span>
+                {sidebarOpen && <span className="text-sm font-medium">Operations</span>}
+              </div>
+              {sidebarOpen && <span className="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">Phase 4A</span>}
+            </button>
+          </div>
         </nav>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-3 border-t border-gray-700 text-gray-400 hover:text-white">
           {sidebarOpen ? '◀ Collapse' : '▶'}
@@ -210,18 +454,36 @@ export default function App() {
         {currentPage === 'dashboard' && <DashboardPage onNavigate={navigateTo} onViewLead={navigateToLead} />}
         {currentPage === 'command' && <CommandCenterPage onNavigate={navigateTo} onViewLead={navigateToLead} />}
         {currentPage === 'leads' && <LeadsPage onViewLead={navigateToLead} />}
+        {currentPage === 'lead-lists' && <LeadListsPage onViewLead={navigateToLead} />}
+        {currentPage === 'import-leads' && <ImportLeadsPage />}
         {currentPage === 'lead-detail' && selectedLeadId && <LeadDetailPage leadId={selectedLeadId} onBack={() => navigateTo('leads')} />}
         {currentPage === 'kanban' && <KanbanPage onViewLead={navigateToLead} />}
         {currentPage === 'clients' && <ClientsPage />}
         {currentPage === 'ai' && <AIPage onViewLead={navigateToLead} />}
         {currentPage === 'ai-workforce' && <AIWorkforcePage />}
+        {currentPage === 'approval-center' && <ApprovalCenterPage />}
+        {currentPage === 'client-portal' && <ClientPortalPage />}
+        {currentPage === 'white-label' && <WhiteLabelPage />}
+        {currentPage === 'lead-intelligence' && <LeadIntelligencePage onViewLead={navigateToLead} />}
+        {currentPage === 'ai-lead-analysis' && <AILeadAnalysisPage onViewLead={navigateToLead} />}
+        {currentPage === 'call-intelligence' && <CallIntelligencePage onViewLead={navigateToLead} />}
+        {currentPage === 'lead-scoring' && <LeadScoringPage onViewLead={navigateToLead} />}
+        {currentPage === 'opportunities' && <OpportunitiesPage onViewLead={navigateToLead} />}
+        {currentPage === 'audits-proposals' && <AuditsProposalsPage onViewLead={navigateToLead} />}
+        {currentPage === 'follow-up-queue' && <FollowUpQueuePage onViewLead={navigateToLead} />}
         {currentPage === 'calls' && <CallsPage onViewLead={navigateToLead} />}
         {currentPage === 'emails' && <EmailsPage onViewLead={navigateToLead} />}
+        {currentPage === 'sms-outreach' && <SMSOutreachPage onViewLead={navigateToLead} />}
         {currentPage === 'outreach' && <OutreachPage onViewLead={navigateToLead} />}
         {currentPage === 'client-experience' && <ClientExperiencePage />}
         {currentPage === 'reporting' && <ReportingPage />}
+        {currentPage === 'revenue-forecast' && <RevenueForecastPage />}
         {currentPage === 'analytics' && <AnalyticsPage />}
         {currentPage === 'settings' && <SettingsPage />}
+        {currentPage === 'integrations' && <IntegrationsPage />}
+        {currentPage === 'team' && <TeamPage />}
+        {currentPage === 'sophia-workforce' && <SophiaWorkforcePage />}
+        {currentPage === 'ops' && <OpsPage />}
       </main>
     </div>
   );
@@ -2728,6 +2990,574 @@ function ReportingPage() {
             <p className="text-2xl font-bold text-yellow-400">+15%</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== NEW PAGES ====================
+
+function LeadListsPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived);
+  const [filter, setFilter] = useState<string>('all');
+
+  const filteredLeads = filter === 'all' ? leads : leads.filter(l => l.status === filter);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Lead Lists</h1>
+        <p className="text-gray-400 text-sm mt-1">Organize and filter your leads by status</p>
+      </div>
+      <div className="flex gap-2">
+        {['all', 'new', 'contacted', 'qualified', 'proposal', 'won', 'lost'].map(status => (
+          <button
+            key={status}
+            onClick={() => setFilter(status)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filter === status ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            }`}
+          >
+            {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)} ({status === 'all' ? leads.length : leads.filter(l => l.status === status).length})
+          </button>
+        ))}
+      </div>
+      <div className="space-y-3">
+        {filteredLeads.map(lead => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.company} • {lead.email}</p>
+              </div>
+              <div className="text-right">
+                <StatusBadge status={lead.status} />
+                <p className="text-sm text-yellow-400 mt-1">⭐ {lead.score}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ImportLeadsPage() {
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Import Leads</h1>
+        <p className="text-gray-400 text-sm mt-1">Import leads from CSV or Excel files</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <h3 className="font-semibold text-lg mb-4">CSV Import</h3>
+          <p className="text-sm text-gray-400 mb-4">Import leads from a CSV file with columns: firstName, lastName, email, phone, company</p>
+          <button onClick={() => setShowImportModal(true)} className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors">
+            📥 Import CSV
+          </button>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <h3 className="font-semibold text-lg mb-4">Excel Import</h3>
+          <p className="text-sm text-gray-400 mb-4">Import leads from an Excel file (.xlsx)</p>
+          <button className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors">
+            📊 Import Excel
+          </button>
+        </div>
+      </div>
+      {showImportModal && <ImportModal onClose={() => setShowImportModal(false)} onImported={() => setShowImportModal(false)} />}
+    </div>
+  );
+}
+
+function ApprovalCenterPage() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>✓</span> Approval Center
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Review and approve AI-generated content and workflows</p>
+      </div>
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <p className="text-gray-400 text-center py-12">No pending approvals</p>
+      </div>
+    </div>
+  );
+}
+
+function ClientPortalPage() {
+  const clients = store.getClients().filter(c => c.status === 'active');
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🌟</span> Client Portal
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Client-facing portal for service delivery and communication</p>
+      </div>
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Active Clients ({clients.length})</h3>
+        <div className="space-y-3">
+          {clients.map(client => (
+            <div key={client.id} className="p-4 bg-gray-700/30 rounded-lg">
+              <p className="font-medium">{client.name}</p>
+              <p className="text-sm text-gray-400">{client.company}</p>
+              <p className="text-xs text-gray-500 mt-1">Service: {client.service} • ${client.mrr}/mo</p>
+            </div>
+          ))}
+          {clients.length === 0 && <p className="text-gray-500 text-center py-4">No active clients</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhiteLabelPage() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🎨</span> White-Label
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Customize branding for client-facing materials</p>
+      </div>
+      <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-4">
+        <p className="text-purple-300 text-sm">
+          <strong>Phase 4B:</strong> White-label customization will be available in the next update.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function LeadIntelligencePage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived && l.score >= 70);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🔍</span> Lead Intelligence
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Deep insights and intelligence on high-value leads</p>
+      </div>
+      <div className="space-y-3">
+        {leads.map(lead => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.company} • {lead.industry}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-yellow-400">⭐ {lead.score}</p>
+                <StatusBadge status={lead.status} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AILeadAnalysisPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🤖</span> AI Lead Analysis
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">AI-powered analysis and recommendations for your leads</p>
+      </div>
+      <div className="space-y-3">
+        {leads.slice(0, 10).map(lead => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.company}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-purple-400">AI Score: {lead.score}</p>
+                <StatusBadge status={lead.status} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CallIntelligencePage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const calls = store.getCalls();
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>📞</span> Call Intelligence
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Analyze call patterns, objections, and outcomes</p>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Total Calls</p>
+          <p className="text-2xl font-bold">{calls.length}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Completed</p>
+          <p className="text-2xl font-bold text-green-400">{calls.filter(c => c.status === 'completed').length}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Missed</p>
+          <p className="text-2xl font-bold text-red-400">{calls.filter(c => c.status === 'missed').length}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-xs text-gray-400">Avg Duration</p>
+          <p className="text-2xl font-bold">
+            {calls.length > 0 ? Math.round(calls.reduce((sum, c) => sum + c.duration, 0) / calls.length / 60) : 0}m
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {calls.slice(0, 10).map(call => {
+          const lead = store.getLead(call.leadId);
+          return (
+            <div key={call.id} onClick={() => lead && onViewLead(call.leadId)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{lead ? `${lead.firstName} ${lead.lastName}` : 'Unknown'}</p>
+                  <p className="text-sm text-gray-400">{call.direction === 'outbound' ? 'Outbound' : 'Inbound'} • {Math.floor(call.duration / 60)}m {call.duration % 60}s</p>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded ${call.status === 'completed' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+                  {call.status}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LeadScoringPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived).sort((a, b) => b.score - a.score);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>⭐</span> Lead Scoring (0-100)
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">All leads ranked by score</p>
+      </div>
+      <div className="space-y-3">
+        {leads.map((lead, idx) => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold text-gray-500 w-8">#{idx + 1}</div>
+              <div className="flex-1">
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.company}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-yellow-400">{lead.score}</p>
+                <StatusBadge status={lead.status} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OpportunitiesPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived && (l.status === 'qualified' || l.status === 'proposal' || l.status === 'negotiation'));
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>💡</span> Opportunities
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">High-value opportunities in your pipeline</p>
+      </div>
+      <div className="space-y-3">
+        {leads.map(lead => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.company} • {lead.industry}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-yellow-400">⭐ {lead.score}</p>
+                <StatusBadge status={lead.status} />
+              </div>
+            </div>
+          </div>
+        ))}
+        {leads.length === 0 && <p className="text-gray-500 text-center py-12">No opportunities in pipeline</p>}
+      </div>
+    </div>
+  );
+}
+
+function AuditsProposalsPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived && (l.status === 'proposal' || l.status === 'negotiation'));
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>📋</span> Audits & Proposals
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Track audits and proposals in progress</p>
+      </div>
+      <div className="space-y-3">
+        {leads.map(lead => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.company}</p>
+              </div>
+              <StatusBadge status={lead.status} />
+            </div>
+          </div>
+        ))}
+        {leads.length === 0 && <p className="text-gray-500 text-center py-12">No active proposals</p>}
+      </div>
+    </div>
+  );
+}
+
+function FollowUpQueuePage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const tasks = store.getTasks().filter(t => t.status === 'pending' || t.status === 'in_progress');
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🕐</span> Follow-Up Queue
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Pending follow-ups and tasks</p>
+      </div>
+      <div className="space-y-3">
+        {tasks.map(task => {
+          const lead = store.getLead(task.leadId);
+          return (
+            <div key={task.id} onClick={() => lead && onViewLead(task.leadId)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{task.title}</p>
+                  {lead && <p className="text-sm text-gray-400">{lead.firstName} {lead.lastName} • {lead.company}</p>}
+                  <p className="text-xs text-gray-500 mt-1">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
+                </div>
+                <PriorityBadge priority={task.priority} />
+              </div>
+            </div>
+          );
+        })}
+        {tasks.length === 0 && <p className="text-gray-500 text-center py-12">No pending follow-ups</p>}
+      </div>
+    </div>
+  );
+}
+
+function SMSOutreachPage({ onViewLead }: { onViewLead: (id: string) => void }) {
+  const leads = store.getLeads().filter(l => !l.archived && l.phone);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>💬</span> SMS Outreach
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Send SMS messages to leads</p>
+      </div>
+      <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-4 mb-6">
+        <p className="text-purple-300 text-sm">
+          <strong>Phase 3C:</strong> SMS integration requires Telnyx API configuration.
+        </p>
+      </div>
+      <div className="space-y-3">
+        {leads.slice(0, 10).map(lead => (
+          <div key={lead.id} onClick={() => onViewLead(lead.id)} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{lead.firstName} {lead.lastName}</p>
+                <p className="text-sm text-gray-400">{lead.phone}</p>
+              </div>
+              <StatusBadge status={lead.status} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RevenueForecastPage() {
+  const clients = store.getClients().filter(c => c.status === 'active');
+  const totalMRR = clients.reduce((sum, c) => sum + c.mrr, 0);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>💰</span> Revenue Forecast
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Revenue projections and forecasting</p>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Current MRR</p>
+          <p className="text-3xl font-bold text-white mt-1">${totalMRR.toLocaleString()}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Monthly Projection</p>
+          <p className="text-3xl font-bold text-white mt-1">${totalMRR.toLocaleString()}</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Annual Projection</p>
+          <p className="text-3xl font-bold text-white mt-1">${(totalMRR * 12).toLocaleString()}</p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 shadow-lg">
+          <p className="text-white/80 text-xs font-medium">Growth Target</p>
+          <p className="text-3xl font-bold text-white mt-1">+25%</p>
+        </div>
+      </div>
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="font-semibold text-lg mb-4">Revenue Breakdown</h3>
+        <div className="space-y-3">
+          {clients.map(client => (
+            <div key={client.id} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+              <div>
+                <p className="font-medium">{client.name}</p>
+                <p className="text-sm text-gray-400">{client.company}</p>
+              </div>
+              <p className="text-lg font-bold text-green-400">${client.mrr.toLocaleString()}/mo</p>
+            </div>
+          ))}
+          {clients.length === 0 && <p className="text-gray-500 text-center py-4">No active clients</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IntegrationsPage() {
+  const settings = store.getSettings();
+  const status = getIntegrationStatus(settings);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🔌</span> Integrations
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Manage third-party integrations and API connections</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Google Gemini</h3>
+            <span className={`text-xs px-2 py-1 rounded ${status.gemini === 'TEST_MODE' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {status.gemini === 'TEST_MODE' ? 'Configured' : 'Not Configured'}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">AI content generation and analysis</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Telnyx Voice</h3>
+            <span className={`text-xs px-2 py-1 rounded ${status.telnyxVoice === 'TEST_MODE' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {status.telnyxVoice === 'TEST_MODE' ? 'Configured' : 'Not Configured'}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">Voice calling and transcription</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Telnyx SMS</h3>
+            <span className={`text-xs px-2 py-1 rounded ${status.telnyxSMS === 'TEST_MODE' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {status.telnyxSMS === 'TEST_MODE' ? 'Configured' : 'Not Configured'}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">SMS messaging</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">n8n Workflows</h3>
+            <span className={`text-xs px-2 py-1 rounded ${status.n8n === 'TEST_MODE' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+              {status.n8n === 'TEST_MODE' ? 'Configured' : 'Not Configured'}
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">Workflow automation</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamPage() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>👥</span> Team
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Manage team members and permissions</p>
+      </div>
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <p className="text-gray-400 text-center py-12">Team management coming soon</p>
+      </div>
+    </div>
+  );
+}
+
+function SophiaWorkforcePage() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>🤖</span> Sophia & Workforce
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Configure Sophia AI and workforce agents</p>
+      </div>
+      <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-4">
+        <p className="text-purple-300 text-sm">
+          <strong>Phase 4A:</strong> Multi-agent configuration and management.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function OpsPage() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-3">
+          <span>⚙️</span> Operations
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">System operations and monitoring</p>
+      </div>
+      <div className="bg-purple-900/20 border border-purple-700 rounded-lg p-4">
+        <p className="text-purple-300 text-sm">
+          <strong>Phase 4A:</strong> Multi-agent operations and monitoring dashboard.
+        </p>
       </div>
     </div>
   );
