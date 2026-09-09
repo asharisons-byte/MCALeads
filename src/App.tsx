@@ -1115,8 +1115,27 @@ function CallsTab({ leadId, calls, onRefresh }: { leadId: string; calls: CallRec
   const lead = store.getLead(leadId);
   const [calling, setCalling] = useState(false);
   const [callError, setCallError] = useState<string | null>(null);
+  const [telnyxConfigured, setTelnyxConfigured] = useState<boolean | null>(null);
   const settings = store.getSettings();
-  const telnyxConfigured = !!settings.apiKey_telnyx;
+
+  // Check Telnyx configuration status
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/telnyx/status');
+        if (response.ok) {
+          const data = await response.json();
+          setTelnyxConfigured(data.configured);
+        } else {
+          setTelnyxConfigured(false);
+        }
+      } catch (error) {
+        console.error('Failed to check Telnyx status:', error);
+        setTelnyxConfigured(false);
+      }
+    };
+    checkStatus();
+  }, []);
 
   const initiateCall = async () => {
     if (!lead?.phone) {
@@ -1127,49 +1146,58 @@ function CallsTab({ leadId, calls, onRefresh }: { leadId: string; calls: CallRec
     setCallError(null);
 
     if (telnyxConfigured) {
-      // Try real Telnyx call
-      const result = await initiateTelnyxCall(
-        settings.apiKey_telnyx,
-        '+15551234567', // From number - should be configured in settings
-        lead.phone,
-        leadId
-      );
-
-      if (result.status === 'CONNECTED' && result.data) {
-        // Real call initiated
-        store.createCall({
-          leadId,
-          direction: 'outbound',
-          status: 'completed',
-          duration: 0, // Will be updated via webhook
-          transcript: `Call initiated via Telnyx. Call ID: ${result.data.call_control_id}`,
+      try {
+        // Call the secure server-side endpoint
+        const response = await fetch('/api/telnyx/voice/call', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: lead.phone,
+            leadId: leadId,
+          }),
         });
-        
-        // Trigger n8n workflow for AI calling
-        if (settings.webhook_n8n) {
-          triggerN8NWorkflow(settings.webhook_n8n, {
-            event: 'call_initiated',
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Real call initiated
+          store.createCall({
             leadId,
-            leadData: lead,
-            callData: { callControlId: result.data.call_control_id },
+            direction: 'outbound',
+            status: 'completed',
+            duration: 0, // Will be updated via webhook
+            transcript: `Call initiated via Telnyx. Call ID: ${result.callControlId}`,
           });
+          
+          // Trigger n8n workflow for AI calling
+          if (settings.webhook_n8n) {
+            triggerN8NWorkflow(settings.webhook_n8n, {
+              event: 'call_initiated',
+              leadId,
+              leadData: lead,
+              callData: { callControlId: result.callControlId },
+            });
+          }
+          
+          setCalling(false);
+          onRefresh();
+          return;
+        } else {
+          setCallError(`Call failed: ${result.error || result.message || 'Unknown error'}`);
+          setCalling(false);
+          return;
         }
-        
-        setCalling(false);
-        onRefresh();
-        return;
-      }
-
-      if (result.status === 'CONFIGURATION_REQUIRED') {
-        setCallError('CONFIGURATION REQUIRED: Telnyx API key not configured');
+      } catch (error) {
+        setCallError(`Call failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setCalling(false);
         return;
       }
-
-      if (result.status === 'ERROR') {
-        setCallError(`Telnyx Error: ${result.error}. Falling back to simulation.`);
-        // Fall through to simulation
-      }
+    } else if (telnyxConfigured === false) {
+      setCallError('Telnyx is not configured on the server. Please contact your administrator.');
+      setCalling(false);
+      return;
     }
 
     // Fallback: Simulate call when Telnyx not configured
@@ -3618,10 +3646,28 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
     const saved = localStorage.getItem('mca_sms_logs');
     return saved ? JSON.parse(saved) : [];
   });
+  const [telnyxConfigured, setTelnyxConfigured] = useState<boolean | null>(null);
 
-  const settings = store.getSettings();
-  const telnyxApiKey = settings.apiKey_telnyx;
   const leads = store.getLeads().filter(l => !l.archived && l.phone);
+
+  // Check Telnyx configuration status
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/telnyx/status');
+        if (response.ok) {
+          const data = await response.json();
+          setTelnyxConfigured(data.configured);
+        } else {
+          setTelnyxConfigured(false);
+        }
+      } catch (error) {
+        console.error('Failed to check Telnyx status:', error);
+        setTelnyxConfigured(false);
+      }
+    };
+    checkStatus();
+  }, []);
 
   // Save logs to localStorage
   useEffect(() => {
@@ -3658,8 +3704,13 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
   };
 
   const handleCall = async () => {
-    if (!phoneNumber || !telnyxApiKey) {
-      alert('Please enter a phone number and configure Telnyx API key in Settings');
+    if (!phoneNumber) {
+      alert('Please enter a phone number');
+      return;
+    }
+
+    if (telnyxConfigured === false) {
+      alert('Telnyx is not configured on the server. Please contact your administrator.');
       return;
     }
 
@@ -3668,14 +3719,21 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
     setCallDuration(0);
 
     try {
-      const result = await initiateTelnyxCall(
-        telnyxApiKey,
-        '+15551234567', // From number - should be configurable
-        phoneNumber,
-        selectedLead || 'manual'
-      );
+      // Call the secure server-side endpoint
+      const response = await fetch('/api/telnyx/voice/call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: phoneNumber,
+          leadId: selectedLead || undefined,
+        }),
+      });
 
-      if (result.status === 'CONNECTED') {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         setCallStatus('connected');
         
         // Simulate call duration (in real app, this would come from webhooks)
@@ -3693,7 +3751,7 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
             status: 'completed',
             duration: callDuration,
             timestamp: new Date().toISOString(),
-            callId: result.data?.call_control_id
+            callId: result.callControlId
           };
           
           setCallLogs(prev => [newCallLog, ...prev]);
@@ -3712,7 +3770,7 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
       } else {
         setCallStatus('failed');
         setIsCalling(false);
-        alert(`Call failed: ${result.error}`);
+        alert(`Call failed: ${result.error || result.message || 'Unknown error'}`);
       }
     } catch (error) {
       setCallStatus('failed');
@@ -3727,8 +3785,13 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
   };
 
   const handleSendSMS = async () => {
-    if (!phoneNumber || !message || !telnyxApiKey) {
-      alert('Please enter phone number, message, and configure Telnyx API key in Settings');
+    if (!phoneNumber || !message) {
+      alert('Please enter phone number and message');
+      return;
+    }
+
+    if (telnyxConfigured === false) {
+      alert('Telnyx is not configured on the server. Please contact your administrator.');
       return;
     }
 
@@ -3736,14 +3799,22 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
     setSmsStatus('sending');
 
     try {
-      const result = await sendTelnyxSMS(
-        telnyxApiKey,
-        '+15551234567', // From number - should be configurable
-        phoneNumber,
-        message
-      );
+      // Call the secure server-side endpoint
+      const response = await fetch('/api/telnyx/sms/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: phoneNumber,
+          text: message,
+          leadId: selectedLead || undefined,
+        }),
+      });
 
-      if (result.status === 'CONNECTED') {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         setSmsStatus('sent');
         setMessage('');
         
@@ -3757,7 +3828,7 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
           direction: 'outbound',
           status: 'sent',
           timestamp: new Date().toISOString(),
-          messageId: result.data?.id
+          messageId: result.messageId
         };
         
         setSmsLogs(prev => [newSmsLog, ...prev]);
@@ -3774,7 +3845,7 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
         setTimeout(() => setSmsStatus('idle'), 3000);
       } else {
         setSmsStatus('failed');
-        alert(`SMS failed: ${result.error}`);
+        alert(`SMS failed: ${result.error || result.message || 'Unknown error'}`);
       }
     } catch (error) {
       setSmsStatus('failed');
@@ -3805,10 +3876,24 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
           </h1>
           <p className="text-gray-400 text-sm mt-1">Make calls and send SMS messages using Telnyx</p>
         </div>
-        {!telnyxApiKey && (
+        {telnyxConfigured === null && (
+          <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+            <p className="text-blue-300 text-sm">
+              ⏳ <strong>Checking configuration...</strong>
+            </p>
+          </div>
+        )}
+        {telnyxConfigured === false && (
           <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
             <p className="text-red-300 text-sm">
-              ⚠️ <strong>Configuration Required:</strong> Add Telnyx API key in Settings to enable calling and SMS
+              ⚠️ <strong>Configuration Required:</strong> Telnyx is not configured on the server. Please contact your administrator.
+            </p>
+          </div>
+        )}
+        {telnyxConfigured === true && (
+          <div className="bg-green-900/20 border border-green-700 rounded-lg p-3">
+            <p className="text-green-300 text-sm">
+              ✓ <strong>Telnyx calling configured</strong>
             </p>
           </div>
         )}
@@ -3931,9 +4016,9 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleCall}
-                disabled={isCalling || !phoneNumber || !telnyxApiKey}
+                disabled={isCalling || !phoneNumber || telnyxConfigured === false}
                 className={`py-4 rounded-lg text-lg font-bold transition-colors ${
-                  isCalling || !phoneNumber || !telnyxApiKey
+                  isCalling || !phoneNumber || telnyxConfigured === false
                     ? 'bg-gray-600 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700'
                 }`}
@@ -3981,9 +4066,9 @@ function DialerPage({ onViewLead }: { onViewLead: (id: string) => void }) {
               </div>
               <button
                 onClick={handleSendSMS}
-                disabled={isSending || !phoneNumber || !message || !telnyxApiKey}
+                disabled={isSending || !phoneNumber || !message || telnyxConfigured === false}
                 className={`w-full py-3 rounded-lg text-lg font-bold transition-colors ${
-                  isSending || !phoneNumber || !message || !telnyxApiKey
+                  isSending || !phoneNumber || !message || telnyxConfigured === false
                     ? 'bg-gray-600 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700'
                 }`}
