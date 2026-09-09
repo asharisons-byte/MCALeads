@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { store, aiGenerator } from './store';
+import {
+  callGemini, generateAIPitch, generateAIEmail, generateAICallScript,
+  generateAISMS, generateAILoomScript, generateAICallSummary,
+  initiateTelnyxCall, sendTelnyxSMS, triggerN8NWorkflow,
+  getIntegrationStatus, type IntegrationStatus
+} from './integrations';
 import type {
   Lead, LeadStatus, CRMNote, Task, CallRecord, EmailRecord,
   AIContent, Client, AgencySettings, DashboardStats
@@ -360,6 +366,8 @@ function LeadDetailPage({ leadId, onBack }: { leadId: string; onBack: () => void
   const [aiContent, setAiContent] = useState<AIContent[]>(store.getAIContent(leadId));
   const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'tasks' | 'calls' | 'emails' | 'ai'>('overview');
   const [showEditModal, setShowEditModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const refresh = () => {
     setLead(store.getLead(leadId));
@@ -374,36 +382,137 @@ function LeadDetailPage({ leadId, onBack }: { leadId: string; onBack: () => void
 
   const handleStatusChange = (status: LeadStatus) => {
     store.updateLead(leadId, { status });
+    // Trigger n8n webhook on status change
+    const settings = store.getSettings();
+    if (settings.webhook_n8n) {
+      triggerN8NWorkflow(settings.webhook_n8n, {
+        event: 'lead_status_changed',
+        leadId,
+        leadData: { status },
+        metadata: { previousStatus: lead.status },
+      });
+    }
     refresh();
   };
 
   const handleConvertToClient = () => {
     if (confirm('Convert this lead to a client?')) {
       store.convertToClient(leadId);
+      // Trigger n8n webhook on conversion
+      const settings = store.getSettings();
+      if (settings.webhook_n8n) {
+        triggerN8NWorkflow(settings.webhook_n8n, {
+          event: 'lead_converted_to_client',
+          leadId,
+          leadData: lead,
+        });
+      }
       refresh();
       alert('Lead converted to client successfully!');
     }
   };
 
-  const handleGenerateAI = (type: AIContent['type']) => {
+  const handleGenerateAI = async (type: AIContent['type']) => {
+    setAiLoading(true);
+    setAiError(null);
     let content = '';
-    switch (type) {
-      case 'pitch': content = aiGenerator.generatePitch(lead); break;
-      case 'email': { const e = aiGenerator.generateEmail(lead); content = `${e.subject}\n\n${e.body}`; break; }
-      case 'calling_script': content = aiGenerator.generateCallingScript(lead); break;
-      case 'loom_script': content = aiGenerator.generateLoomScript(lead); break;
-      case 'sms_script': content = aiGenerator.generateSMSScript(lead); break;
-      case 'lead_score_analysis': { 
-        const audit = aiGenerator.generateLeadScore(lead); 
-        store.createAudit(audit);
-        // Update the lead's score in the database
-        store.updateLead(leadId, { score: audit.score });
-        content = `Score: ${audit.score}/100\n\n${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; 
-        break; 
+    const settings = store.getSettings();
+    const useRealGemini = !!settings.apiKey_gemini;
+
+    try {
+      if (useRealGemini) {
+        // Try real Gemini API
+        let result;
+        switch (type) {
+          case 'pitch':
+            result = await generateAIPitch(lead, settings.apiKey_gemini);
+            if (result.status === 'CONNECTED' && result.data) content = result.data.text;
+            break;
+          case 'email':
+            result = await generateAIEmail(lead, settings.apiKey_gemini);
+            if (result.status === 'CONNECTED' && result.data) content = `${result.data.subject}\n\n${result.data.body}`;
+            break;
+          case 'calling_script':
+            result = await generateAICallScript(lead, settings.apiKey_gemini);
+            if (result.status === 'CONNECTED' && result.data) content = result.data.text;
+            break;
+          case 'loom_script':
+            result = await generateAILoomScript(lead, settings.apiKey_gemini);
+            if (result.status === 'CONNECTED' && result.data) content = result.data.text;
+            break;
+          case 'sms_script':
+            result = await generateAISMS(lead, settings.apiKey_gemini);
+            if (result.status === 'CONNECTED' && result.data) content = result.data.text;
+            break;
+          case 'lead_score_analysis': {
+            result = await generateAIPitch(lead, settings.apiKey_gemini); // Use pitch as base for scoring
+            if (result.status === 'CONFIGURATION_REQUIRED') {
+              setAiError('CONFIGURATION REQUIRED: Gemini API key not configured');
+              setAiLoading(false);
+              return;
+            }
+            if (result.status === 'ERROR') {
+              setAiError(`Gemini API Error: ${result.error}`);
+              setAiLoading(false);
+              return;
+            }
+            // Fall through to template scoring if Gemini succeeds but we need structured data
+            const audit = aiGenerator.generateLeadScore(lead);
+            store.createAudit(audit);
+            store.updateLead(leadId, { score: audit.score });
+            content = `Score: ${audit.score}/100 (Gemini-powered analysis)\n\n${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`;
+            break;
+          }
+        }
+
+        if (result?.status === 'CONFIGURATION_REQUIRED') {
+          setAiError('CONFIGURATION REQUIRED: Gemini API key not configured. Add your key in Settings.');
+          setAiLoading(false);
+          return;
+        }
+        if (result?.status === 'ERROR') {
+          setAiError(`Gemini API Error: ${result.error}. Falling back to template.`);
+          // Fall through to template
+        }
       }
+
+      // Fallback to templates if Gemini not configured or failed
+      if (!content) {
+        switch (type) {
+          case 'pitch': content = aiGenerator.generatePitch(lead); break;
+          case 'email': { const e = aiGenerator.generateEmail(lead); content = `${e.subject}\n\n${e.body}`; break; }
+          case 'calling_script': content = aiGenerator.generateCallingScript(lead); break;
+          case 'loom_script': content = aiGenerator.generateLoomScript(lead); break;
+          case 'sms_script': content = aiGenerator.generateSMSScript(lead); break;
+          case 'lead_score_analysis': {
+            if (!content) {
+              const audit = aiGenerator.generateLeadScore(lead);
+              store.createAudit(audit);
+              store.updateLead(leadId, { score: audit.score });
+              content = `Score: ${audit.score}/100\n\n${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`;
+            }
+            break;
+          }
+        }
+      }
+
+      store.createAIContent({ leadId, type, content });
+      
+      // Trigger n8n webhook on AI generation
+      if (settings.webhook_n8n) {
+        triggerN8NWorkflow(settings.webhook_n8n, {
+          event: 'ai_content_generated',
+          leadId,
+          metadata: { type, usedGemini: useRealGemini },
+        });
+      }
+      
+      refresh();
+    } catch (err) {
+      setAiError(`AI generation failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setAiLoading(false);
     }
-    store.createAIContent({ leadId, type, content });
-    refresh();
   };
 
   const tabs = [
@@ -489,7 +598,7 @@ function LeadDetailPage({ leadId, onBack }: { leadId: string; onBack: () => void
       {activeTab === 'tasks' && <TasksTab leadId={leadId} tasks={tasks} onRefresh={refresh} />}
       {activeTab === 'calls' && <CallsTab leadId={leadId} calls={calls} onRefresh={refresh} />}
       {activeTab === 'emails' && <EmailsTab leadId={leadId} emails={emails} onRefresh={refresh} />}
-      {activeTab === 'ai' && <AIContentTab lead={lead} content={aiContent} onGenerate={handleGenerateAI} />}
+      {activeTab === 'ai' && <AIContentTab lead={lead} content={aiContent} onGenerate={handleGenerateAI} loading={aiLoading} error={aiError} />}
 
       {showEditModal && <EditLeadModal lead={lead} onClose={() => setShowEditModal(false)} onSaved={() => { setShowEditModal(false); refresh(); }} />}
     </div>
@@ -599,20 +708,122 @@ function TasksTab({ leadId, tasks, onRefresh }: { leadId: string; tasks: Task[];
 function CallsTab({ leadId, calls, onRefresh }: { leadId: string; calls: CallRecord[]; onRefresh: () => void }) {
   const lead = store.getLead(leadId);
   const [calling, setCalling] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
+  const settings = store.getSettings();
+  const telnyxConfigured = !!settings.apiKey_telnyx;
 
-  const initiateCall = () => {
+  const initiateCall = async () => {
+    if (!lead?.phone) {
+      setCallError('No phone number available for this lead');
+      return;
+    }
     setCalling(true);
-    // Simulate call (no real Telnyx connection)
+    setCallError(null);
+
+    if (telnyxConfigured) {
+      // Try real Telnyx call
+      const result = await initiateTelnyxCall(
+        settings.apiKey_telnyx,
+        '+15551234567', // From number - should be configured in settings
+        lead.phone,
+        leadId
+      );
+
+      if (result.status === 'CONNECTED' && result.data) {
+        // Real call initiated
+        store.createCall({
+          leadId,
+          direction: 'outbound',
+          status: 'completed',
+          duration: 0, // Will be updated via webhook
+          transcript: `Call initiated via Telnyx. Call ID: ${result.data.call_control_id}`,
+        });
+        
+        // Trigger n8n workflow for AI calling
+        if (settings.webhook_n8n) {
+          triggerN8NWorkflow(settings.webhook_n8n, {
+            event: 'call_initiated',
+            leadId,
+            leadData: lead,
+            callData: { callControlId: result.data.call_control_id },
+          });
+        }
+        
+        setCalling(false);
+        onRefresh();
+        return;
+      }
+
+      if (result.status === 'CONFIGURATION_REQUIRED') {
+        setCallError('CONFIGURATION REQUIRED: Telnyx API key not configured');
+        setCalling(false);
+        return;
+      }
+
+      if (result.status === 'ERROR') {
+        setCallError(`Telnyx Error: ${result.error}. Falling back to simulation.`);
+        // Fall through to simulation
+      }
+    }
+
+    // Fallback: Simulate call when Telnyx not configured
     setTimeout(() => {
       const duration = Math.floor(Math.random() * 600) + 60;
+      const callStatus = Math.random() > 0.2 ? 'completed' : 'missed';
+      
       store.createCall({
         leadId,
         direction: 'outbound',
-        status: Math.random() > 0.2 ? 'completed' : 'missed',
+        status: callStatus,
         duration,
         transcript: duration > 300 ? 'Call completed. Discussed services and next steps.' : undefined,
         aiSummary: duration > 300 ? 'Lead is interested. Follow up with proposal.' : undefined,
       });
+
+      // Call Completion Automation
+      if (callStatus === 'completed') {
+        // Create CRM note
+        store.createNote({
+          leadId,
+          content: `Call completed (${Math.floor(duration / 60)}m ${duration % 60}s). Discussed services and next steps.`,
+          type: 'call',
+          createdBy: 'Sophia',
+        });
+
+        // Update lead status: New → Contacted (don't overwrite advanced stages)
+        const currentLead = store.getLead(leadId);
+        if (currentLead && currentLead.status === 'new') {
+          store.updateLead(leadId, { status: 'contacted' });
+        }
+
+        // Generate AI call summary if Gemini configured
+        if (settings.apiKey_gemini && duration > 300) {
+          generateAICallSummary(
+            'Call completed. Discussed services and next steps.',
+            lead,
+            settings.apiKey_gemini
+          ).then(result => {
+            if (result.status === 'CONNECTED' && result.data) {
+              store.createAIContent({
+                leadId,
+                type: 'pitch', // Using pitch type for call summary
+                content: `CALL SUMMARY:\n${result.data.summary}\n\nNEXT STEPS:\n${result.data.nextSteps}\n\nSENTIMENT: ${result.data.sentiment}`,
+              });
+              onRefresh();
+            }
+          });
+        }
+      }
+
+      // Trigger n8n webhook
+      if (settings.webhook_n8n) {
+        triggerN8NWorkflow(settings.webhook_n8n, {
+          event: 'call_completed',
+          leadId,
+          callData: { status: callStatus, duration },
+        });
+      }
+
       setCalling(false);
       onRefresh();
     }, 2000);
@@ -625,9 +836,15 @@ function CallsTab({ leadId, calls, onRefresh }: { leadId: string; calls: CallRec
           <div>
             <h3 className="font-semibold">Initiate Call</h3>
             <p className="text-sm text-gray-400">{lead?.phone || 'No phone number'}</p>
-            <p className="text-xs text-yellow-400 mt-1">⚠️ Telnyx not configured - calls are simulated</p>
+            {!telnyxConfigured && (
+              <p className="text-xs text-red-400 mt-1">⚠️ CONFIGURATION REQUIRED: Telnyx API key not configured. Calls are simulated.</p>
+            )}
+            {telnyxConfigured && (
+              <p className="text-xs text-green-400 mt-1">✓ Telnyx configured — attempting real call</p>
+            )}
+            {callError && <p className="text-xs text-red-400 mt-1">❌ {callError}</p>}
           </div>
-          <button onClick={initiateCall} disabled={calling} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${calling ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}>
+          <button onClick={initiateCall} disabled={calling || !lead?.phone} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${calling || !lead?.phone ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}>
             {calling ? '📞 Calling...' : '📞 Call Now'}
           </button>
         </div>
@@ -663,16 +880,47 @@ function EmailsTab({ leadId, emails, onRefresh }: { leadId: string; emails: Emai
   const [showCompose, setShowCompose] = useState(false);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const settings = store.getSettings();
 
   const sendEmail = () => {
     if (!subject.trim() || !body.trim()) return;
-    store.createEmail({ leadId, subject, body, status: 'sent', sentAt: new Date().toISOString() });
+    
+    // Gmail OAuth requires backend - cannot send real emails from frontend
+    // Log email as draft only
+    store.createEmail({ leadId, subject, body, status: 'draft', sentAt: undefined });
+    setEmailError('GMAIL CONFIGURATION REQUIRED: Email saved as draft. Configure Gmail OAuth in a backend service to enable real sending.');
+    
+    // Trigger n8n webhook
+    if (settings.webhook_n8n) {
+      triggerN8NWorkflow(settings.webhook_n8n, {
+        event: 'email_composed',
+        leadId,
+        emailData: { subject, body },
+      });
+    }
+    
     setSubject(''); setBody(''); setShowCompose(false);
     onRefresh();
   };
 
-  const generateAndFill = () => {
+  const generateAndFill = async () => {
     if (!lead) return;
+    const geminiKey = settings.apiKey_gemini;
+    
+    if (geminiKey) {
+      const result = await generateAIEmail(lead, geminiKey);
+      if (result.status === 'CONNECTED' && result.data) {
+        setSubject(result.data.subject);
+        setBody(result.data.body);
+        return;
+      }
+      if (result.status === 'CONFIGURATION_REQUIRED' || result.status === 'ERROR') {
+        // Fall through to template
+      }
+    }
+    
+    // Fallback to template
     const { subject: s, body: b } = aiGenerator.generateEmail(lead);
     setSubject(s); setBody(b);
   };
@@ -681,8 +929,13 @@ function EmailsTab({ leadId, emails, onRefresh }: { leadId: string; emails: Emai
     <div className="space-y-4">
       <div className="flex gap-2">
         <button onClick={() => setShowCompose(!showCompose)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium">✉️ Compose Email</button>
-        <p className="text-xs text-yellow-400 self-center">⚠️ Gmail not connected - emails are logged only</p>
+        <p className="text-xs text-red-400 self-center">⚠️ GMAIL CONFIGURATION REQUIRED: Emails saved as drafts only. OAuth backend setup needed for real sending.</p>
       </div>
+      {emailError && (
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
+          <p className="text-xs text-red-300">{emailError}</p>
+        </div>
+      )}
       {showCompose && (
         <div className="bg-gray-800 rounded-xl p-5 border border-gray-700 space-y-3">
           <div className="flex gap-2">
@@ -691,9 +944,10 @@ function EmailsTab({ leadId, emails, onRefresh }: { leadId: string; emails: Emai
           </div>
           <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Email body..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm h-40 resize-none focus:outline-none focus:border-purple-500" />
           <div className="flex gap-2">
-            <button onClick={sendEmail} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium">Send Email</button>
+            <button onClick={sendEmail} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm font-medium">Save as Draft</button>
             <button onClick={() => setShowCompose(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm">Cancel</button>
           </div>
+          <p className="text-xs text-gray-400">Note: Real email sending requires Gmail OAuth backend configuration.</p>
         </div>
       )}
       <div className="space-y-3">
@@ -701,7 +955,7 @@ function EmailsTab({ leadId, emails, onRefresh }: { leadId: string; emails: Emai
           <div key={email.id} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
             <div className="flex justify-between items-start mb-2">
               <p className="font-medium text-sm">{email.subject}</p>
-              <span className={`text-xs px-2 py-0.5 rounded ${email.status === 'sent' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>{email.status}</span>
+              <span className={`text-xs px-2 py-0.5 rounded ${email.status === 'sent' ? 'bg-green-900 text-green-300' : email.status === 'draft' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>{email.status === 'draft' ? 'draft (not sent)' : email.status}</span>
             </div>
             <p className="text-sm text-gray-400 whitespace-pre-wrap line-clamp-3">{email.body}</p>
             <p className="text-xs text-gray-500 mt-2">{new Date(email.createdAt).toLocaleString()}</p>
@@ -714,7 +968,7 @@ function EmailsTab({ leadId, emails, onRefresh }: { leadId: string; emails: Emai
 }
 
 // ==================== AI CONTENT TAB ====================
-function AIContentTab({ lead, content, onGenerate }: { lead: Lead; content: AIContent[]; onGenerate: (type: AIContent['type']) => void }) {
+function AIContentTab({ lead, content, onGenerate, loading, error }: { lead: Lead; content: AIContent[]; onGenerate: (type: AIContent['type']) => void; loading?: boolean; error?: string | null }) {
   const [selectedContent, setSelectedContent] = useState<AIContent | null>(null);
 
   return (
@@ -751,7 +1005,13 @@ function AIContentTab({ lead, content, onGenerate }: { lead: Lead; content: AICo
           <p className="text-xs text-gray-400">AI lead scoring</p>
         </button>
       </div>
-      <p className="text-xs text-yellow-400">⚠️ AI content is generated locally. Connect Gemini API in Settings for real AI.</p>
+      {store.getSettings().apiKey_gemini ? (
+        <p className="text-xs text-green-400">✓ Gemini API configured — AI content generated via Google Gemini</p>
+      ) : (
+        <p className="text-xs text-red-400">⚠️ CONFIGURATION REQUIRED: Gemini API key not set. Using local templates. Add key in Settings.</p>
+      )}
+      {loading && <p className="text-xs text-blue-400 animate-pulse">⏳ Generating AI content...</p>}
+      {error && <p className="text-xs text-red-400 bg-red-900/20 rounded p-2">❌ {error}</p>}
 
       {content.length > 0 && (
         <div className="space-y-3">
@@ -903,29 +1163,77 @@ function AIPage({ onViewLead }: { onViewLead: (id: string) => void }) {
   const [selectedLead, setSelectedLead] = useState<string>('');
   const [generatedContent, setGeneratedContent] = useState('');
   const [contentType, setContentType] = useState<string>('pitch');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aiSource, setAiSource] = useState<'gemini' | 'template' | null>(null);
   const leads = store.getLeads().filter(l => !l.archived);
+  const settings = store.getSettings();
+  const geminiConfigured = !!settings.apiKey_gemini;
 
-  const generate = () => {
+  const generate = async () => {
     const lead = store.getLead(selectedLead);
     if (!lead) return;
+    setLoading(true);
+    setError(null);
+    setAiSource(null);
     let content = '';
-    switch (contentType) {
-      case 'pitch': content = aiGenerator.generatePitch(lead); break;
-      case 'email': { const e = aiGenerator.generateEmail(lead); content = `Subject: ${e.subject}\n\n${e.body}`; break; }
-      case 'calling_script': content = aiGenerator.generateCallingScript(lead); break;
-      case 'sms_script': content = aiGenerator.generateSMSScript(lead); break;
-      case 'loom_script': content = aiGenerator.generateLoomScript(lead); break;
-      case 'score': { 
-        const audit = aiGenerator.generateLeadScore(lead); 
-        store.createAudit(audit);
-        // Update the lead's score in the database
-        store.updateLead(selectedLead, { score: audit.score });
-        content = `Lead Score: ${audit.score}/100\n\nRecommendation: ${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; 
-        break; 
+
+    try {
+      if (geminiConfigured) {
+        // Try real Gemini API
+        let result;
+        switch (contentType) {
+          case 'pitch': result = await generateAIPitch(lead, settings.apiKey_gemini); break;
+          case 'email': result = await generateAIEmail(lead, settings.apiKey_gemini); break;
+          case 'calling_script': result = await generateAICallScript(lead, settings.apiKey_gemini); break;
+          case 'sms_script': result = await generateAISMS(lead, settings.apiKey_gemini); break;
+          case 'loom_script': result = await generateAILoomScript(lead, settings.apiKey_gemini); break;
+          case 'score': result = await generateAIPitch(lead, settings.apiKey_gemini); break;
+        }
+
+        if (result?.status === 'CONNECTED' && result.data) {
+          if (contentType === 'email' && 'subject' in result.data) {
+            content = `Subject: ${result.data.subject}\n\n${result.data.body}`;
+          } else if ('text' in result.data) {
+            content = result.data.text;
+          }
+          setAiSource('gemini');
+        } else if (result?.status === 'CONFIGURATION_REQUIRED') {
+          setError('CONFIGURATION REQUIRED: Gemini API key invalid or missing');
+          setLoading(false);
+          return;
+        } else if (result?.status === 'ERROR') {
+          setError(`Gemini API Error: ${result.error}. Using template fallback.`);
+          // Fall through to template
+        }
       }
+
+      // Fallback to templates
+      if (!content) {
+        setAiSource('template');
+        switch (contentType) {
+          case 'pitch': content = aiGenerator.generatePitch(lead); break;
+          case 'email': { const e = aiGenerator.generateEmail(lead); content = `Subject: ${e.subject}\n\n${e.body}`; break; }
+          case 'calling_script': content = aiGenerator.generateCallingScript(lead); break;
+          case 'sms_script': content = aiGenerator.generateSMSScript(lead); break;
+          case 'loom_script': content = aiGenerator.generateLoomScript(lead); break;
+          case 'score': { 
+            const audit = aiGenerator.generateLeadScore(lead); 
+            store.createAudit(audit);
+            store.updateLead(selectedLead, { score: audit.score });
+            content = `Lead Score: ${audit.score}/100\n\nRecommendation: ${audit.recommendation}\n\nFactors:\n${Object.entries(audit.factors).map(([k, v]) => `• ${k}: ${v}/100`).join('\n')}`; 
+            break; 
+          }
+        }
+      }
+
+      setGeneratedContent(content);
+      store.createAIContent({ leadId: selectedLead, type: contentType as AIContent['type'], content });
+    } catch (err) {
+      setError(`Generation failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
-    setGeneratedContent(content);
-    store.createAIContent({ leadId: selectedLead, type: contentType as AIContent['type'], content });
   };
 
   return (
@@ -956,12 +1264,35 @@ function AIPage({ onViewLead }: { onViewLead: (id: string) => void }) {
             </select>
           </div>
           <div className="flex items-end">
-            <button onClick={generate} disabled={!selectedLead} className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">
-              🤖 Generate
+            <button onClick={generate} disabled={!selectedLead || loading} className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">
+              {loading ? '⏳ Generating...' : '🤖 Generate'}
             </button>
           </div>
         </div>
-        <p className="text-xs text-yellow-400 mb-4">⚠️ Using local AI templates. Connect Gemini API in Settings for real AI generation.</p>
+        
+        {/* AI Source Status */}
+        {!geminiConfigured && (
+          <div className="p-3 bg-red-900/20 border border-red-700 rounded-lg mb-4">
+            <p className="text-xs text-red-300">⚠️ CONFIGURATION REQUIRED: Gemini API key not configured. Using local templates. Add your API key in Settings for real AI generation.</p>
+          </div>
+        )}
+        {geminiConfigured && aiSource === 'gemini' && (
+          <div className="p-3 bg-green-900/20 border border-green-700 rounded-lg mb-4">
+            <p className="text-xs text-green-300">✓ Generated via Google Gemini API (real AI)</p>
+          </div>
+        )}
+        {geminiConfigured && aiSource === 'template' && (
+          <div className="p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg mb-4">
+            <p className="text-xs text-yellow-300">⚠️ Gemini API failed or returned error. Using template fallback.</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="p-3 bg-red-900/20 border border-red-700 rounded-lg mb-4">
+            <p className="text-xs text-red-300">❌ {error}</p>
+          </div>
+        )}
+        
         {generatedContent && (
           <div className="bg-gray-900 rounded-lg p-4">
             <pre className="text-sm text-gray-300 whitespace-pre-wrap">{generatedContent}</pre>
@@ -1028,6 +1359,7 @@ function EmailsPage({ onViewLead }: { onViewLead: (id: string) => void }) {
       <div>
         <h1 className="text-2xl font-bold">Email History</h1>
         <p className="text-gray-400 text-sm">{emails.length} total emails</p>
+        <p className="text-xs text-red-400 mt-1">⚠️ GMAIL CONFIGURATION REQUIRED: All emails are drafts. Configure Gmail OAuth backend to enable real sending.</p>
       </div>
       <div className="space-y-3">
         {emails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(email => {
@@ -1041,7 +1373,9 @@ function EmailsPage({ onViewLead }: { onViewLead: (id: string) => void }) {
                   </button>
                   <p className="text-sm font-medium mt-1">{email.subject}</p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded ${email.status === 'sent' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>{email.status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded ${email.status === 'sent' ? 'bg-green-900 text-green-300' : email.status === 'draft' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
+                  {email.status === 'draft' ? 'draft (not sent)' : email.status}
+                </span>
               </div>
               <p className="text-xs text-gray-400 mt-2 line-clamp-2">{email.body}</p>
               <p className="text-xs text-gray-500 mt-2">{new Date(email.createdAt).toLocaleString()}</p>
@@ -1145,11 +1479,62 @@ function AnalyticsPage() {
 function SettingsPage() {
   const [settings, setSettings] = useState<AgencySettings>(store.getSettings());
   const [saved, setSaved] = useState(false);
+  const [testResult, setTestResult] = useState<{ name: string; status: IntegrationStatus; message: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const integrationStatus = getIntegrationStatus(settings);
 
   const save = () => {
     store.updateSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const testGemini = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const result = await callGemini(settings.apiKey_gemini, 'Say "Connection successful" in one sentence.');
+    setTestResult({
+      name: 'Gemini',
+      status: result.status,
+      message: result.status === 'CONNECTED' ? '✓ Real API connection verified' : result.error || 'Unknown error',
+    });
+    setTesting(false);
+  };
+
+  const testN8n = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const result = await triggerN8NWorkflow(settings.webhook_n8n, {
+      event: 'connection_test',
+      leadId: 'test',
+      metadata: { test: true },
+    });
+    setTestResult({
+      name: 'n8n',
+      status: result.status,
+      message: result.status === 'CONNECTED' ? '✓ Webhook endpoint reachable' : result.error || 'Unknown error',
+    });
+    setTesting(false);
+  };
+
+  const statusColor = (s: IntegrationStatus) => {
+    switch (s) {
+      case 'CONNECTED': return 'bg-green-900 text-green-300';
+      case 'TEST_MODE': return 'bg-yellow-900 text-yellow-300';
+      case 'NOT_CONNECTED': return 'bg-red-900 text-red-300';
+      case 'CONFIGURATION_REQUIRED': return 'bg-red-900 text-red-300';
+      case 'ERROR': return 'bg-red-900 text-red-300';
+    }
+  };
+
+  const statusLabel = (s: IntegrationStatus) => {
+    switch (s) {
+      case 'CONNECTED': return 'CONNECTED';
+      case 'TEST_MODE': return 'TEST MODE';
+      case 'NOT_CONNECTED': return 'NOT CONNECTED';
+      case 'CONFIGURATION_REQUIRED': return 'CONFIGURATION REQUIRED';
+      case 'ERROR': return 'ERROR';
+    }
   };
 
   return (
@@ -1164,46 +1549,69 @@ function SettingsPage() {
         </div>
       </div>
 
+      {/* Integration Status Overview */}
       <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 space-y-4">
-        <h3 className="font-semibold text-lg">Integrations</h3>
+        <h3 className="font-semibold text-lg">Integration Status</h3>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Object.entries(integrationStatus).map(([key, status]) => (
+            <div key={key} className="bg-gray-700/50 rounded-lg p-3 text-center">
+              <p className="text-xs text-gray-400 capitalize mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+              <span className={`text-xs px-2 py-1 rounded ${statusColor(status)}`}>{statusLabel(status)}</span>
+            </div>
+          ))}
+        </div>
+        {testResult && (
+          <div className={`p-3 rounded-lg border ${testResult.status === 'CONNECTED' ? 'bg-green-900/20 border-green-700' : 'bg-red-900/20 border-red-700'}`}>
+            <p className={`text-sm ${testResult.status === 'CONNECTED' ? 'text-green-300' : 'text-red-300'}`}>
+              <strong>{testResult.name}:</strong> {testResult.message}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 space-y-4">
+        <h3 className="font-semibold text-lg">Integration Configuration</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
             <div>
               <p className="font-medium text-sm">Google Gemini API</p>
-              <p className="text-xs text-gray-400">AI content generation</p>
+              <p className="text-xs text-gray-400">Real AI content generation</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_gemini ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
-                {settings.apiKey_gemini ? 'Key Configured' : 'Configuration Required'}
+              <button onClick={testGemini} disabled={!settings.apiKey_gemini || testing} className="text-xs px-2 py-1 bg-purple-700 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors">Test</button>
+              <span className={`text-xs px-2 py-1 rounded ${statusColor(integrationStatus.gemini)}`}>
+                {statusLabel(integrationStatus.gemini)}
               </span>
             </div>
           </div>
           <div>
             <label className="text-sm text-gray-400 block mb-1">Gemini API Key</label>
             <input type="password" value={settings.apiKey_gemini} onChange={e => setSettings({ ...settings, apiKey_gemini: e.target.value })} placeholder="Enter API key..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500" />
+            <p className="text-xs text-gray-500 mt-1">Get from: https://aistudio.google.com/apikey</p>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
             <div>
               <p className="font-medium text-sm">Telnyx Voice</p>
-              <p className="text-xs text-gray-400">AI-powered calling</p>
+              <p className="text-xs text-gray-400">Real voice calling</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_telnyx ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.apiKey_telnyx ? 'Key Configured' : 'Configuration Required'}
+            <span className={`text-xs px-2 py-1 rounded ${statusColor(integrationStatus.telnyxVoice)}`}>
+              {statusLabel(integrationStatus.telnyxVoice)}
             </span>
           </div>
           <div>
             <label className="text-sm text-gray-400 block mb-1">Telnyx API Key</label>
             <input type="password" value={settings.apiKey_telnyx} onChange={e => setSettings({ ...settings, apiKey_telnyx: e.target.value })} placeholder="Enter API key..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-purple-500" />
+            <p className="text-xs text-gray-500 mt-1">Get from: https://portal.telnyx.com — Note: Browser CORS may require a backend proxy</p>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
             <div>
               <p className="font-medium text-sm">Telnyx SMS</p>
-              <p className="text-xs text-gray-400">SMS messaging</p>
+              <p className="text-xs text-gray-400">Real SMS messaging</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.apiKey_telnyx ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.apiKey_telnyx ? 'Key Configured' : 'Configuration Required'}
+            <span className={`text-xs px-2 py-1 rounded ${statusColor(integrationStatus.telnyxSMS)}`}>
+              {statusLabel(integrationStatus.telnyxSMS)}
             </span>
           </div>
 
@@ -1212,19 +1620,23 @@ function SettingsPage() {
               <p className="font-medium text-sm">Gmail Integration</p>
               <p className="text-xs text-gray-400">Send emails via Gmail</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.gmailConnected ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.gmailConnected ? 'OAuth Pending' : 'Configuration Required'}
+            <span className={`text-xs px-2 py-1 rounded ${statusColor(integrationStatus.gmail)}`}>
+              {statusLabel(integrationStatus.gmail)}
             </span>
           </div>
+          <p className="text-xs text-gray-500">⚠️ Gmail requires OAuth2 backend setup. Cannot be configured from frontend only.</p>
 
           <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
             <div>
               <p className="font-medium text-sm">n8n Webhooks</p>
               <p className="text-xs text-gray-400">Workflow automation</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${settings.webhook_n8n ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'}`}>
-              {settings.webhook_n8n ? 'URL Configured' : 'Configuration Required'}
-            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={testN8n} disabled={!settings.webhook_n8n || testing} className="text-xs px-2 py-1 bg-purple-700 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors">Test</button>
+              <span className={`text-xs px-2 py-1 rounded ${statusColor(integrationStatus.n8n)}`}>
+                {statusLabel(integrationStatus.n8n)}
+              </span>
+            </div>
           </div>
           <div>
             <label className="text-sm text-gray-400 block mb-1">n8n Webhook URL</label>
