@@ -1091,10 +1091,36 @@ function KanbanPage({ onViewLead }: { onViewLead: (id: string) => void }) {
 // ==================== CLIENTS PAGE ====================
 function ClientsPage() {
   const [clients, setClients] = useState<Client[]>(store.getClients());
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [showAddService, setShowAddService] = useState(false);
+  const [newService, setNewService] = useState({ name: '', price: 0 });
+  const [editMrr, setEditMrr] = useState<{ id: string; mrr: number } | null>(null);
 
   useEffect(() => { setClients(store.getClients()); }, []);
 
+  const refresh = () => setClients(store.getClients());
   const totalMRR = clients.filter(c => c.status === 'active').reduce((sum, c) => sum + c.mrr, 0);
+
+  const handleUpdateMrr = (clientId: string, mrr: number) => {
+    store.updateClient(clientId, { mrr });
+    setEditMrr(null);
+    refresh();
+  };
+
+  const handleAddService = (clientId: string) => {
+    if (!newService.name.trim()) return;
+    // Update client's service field and MRR
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      store.updateClient(clientId, {
+        service: newService.name,
+        mrr: client.mrr + newService.price,
+      });
+    }
+    setNewService({ name: '', price: 0 });
+    setShowAddService(false);
+    refresh();
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -1130,6 +1156,7 @@ function ClientsPage() {
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">MRR</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Status</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Start Date</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
@@ -1141,18 +1168,68 @@ function ClientsPage() {
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-300">{client.company}</td>
                 <td className="px-4 py-3 text-sm text-gray-300">{client.service}</td>
-                <td className="px-4 py-3 text-sm font-medium text-green-400">${client.mrr.toLocaleString()}</td>
+                <td className="px-4 py-3">
+                  {editMrr?.id === client.id ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">$</span>
+                      <input
+                        type="number"
+                        value={editMrr.mrr}
+                        onChange={e => setEditMrr({ id: client.id, mrr: parseInt(e.target.value) || 0 })}
+                        className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        autoFocus
+                      />
+                      <button onClick={() => handleUpdateMrr(client.id, editMrr.mrr)} className="text-xs px-2 py-1 bg-green-600 rounded">✓</button>
+                      <button onClick={() => setEditMrr(null)} className="text-xs px-2 py-1 bg-gray-600 rounded">✗</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditMrr({ id: client.id, mrr: client.mrr })} className="text-sm font-medium text-green-400 hover:text-green-300">
+                      ${client.mrr.toLocaleString()}
+                    </button>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-1 rounded-full ${client.status === 'active' ? 'bg-green-900 text-green-300' : client.status === 'churned' ? 'bg-red-900 text-red-300' : 'bg-gray-700 text-gray-300'}`}>
                     {client.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-400">{new Date(client.startDate).toLocaleDateString()}</td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1">
+                    {selectedClientId === client.id && showAddService ? (
+                      <div className="flex gap-1 items-center">
+                        <input
+                          type="text"
+                          value={newService.name}
+                          onChange={e => setNewService({ ...newService, name: e.target.value })}
+                          placeholder="Service name"
+                          className="w-24 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs"
+                        />
+                        <input
+                          type="number"
+                          value={newService.price}
+                          onChange={e => setNewService({ ...newService, price: parseInt(e.target.value) || 0 })}
+                          placeholder="$"
+                          className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs"
+                        />
+                        <button onClick={() => handleAddService(client.id)} className="text-xs px-2 py-1 bg-green-600 rounded">Add</button>
+                        <button onClick={() => { setShowAddService(false); setSelectedClientId(null); }} className="text-xs px-2 py-1 bg-gray-600 rounded">✗</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setSelectedClientId(client.id); setShowAddService(true); }}
+                        className="text-xs px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded transition-colors"
+                      >
+                        + Service
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {clients.length === 0 && <p className="text-gray-500 text-center py-8">No clients yet</p>}
+        {clients.length === 0 && <p className="text-gray-500 text-center py-8">No clients yet. Convert leads to clients from the Lead Detail page.</p>}
       </div>
     </div>
   );
