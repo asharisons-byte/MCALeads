@@ -3,8 +3,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 /**
  * POST /api/telnyx/sms/webhook
  * Handles Telnyx Messaging API webhook events
+ * Always returns 200 to acknowledge receipt (prevents Telnyx retries)
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  // Set JSON content type
+  res.setHeader('Content-Type', 'application/json');
+
   // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -14,14 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const event = req.body;
+    const event = req.body || {};
 
     // Log the webhook event (without sensitive data)
     console.log('Telnyx SMS webhook received:', {
-      event_type: event.data?.event_type,
-      message_id: event.data?.payload?.id,
-      direction: event.data?.payload?.direction,
-      status: event.data?.payload?.status,
+      event_type: event.data?.event_type || 'unknown',
+      message_id: event.data?.payload?.id || 'unknown',
       timestamp: new Date().toISOString(),
     });
 
@@ -30,23 +32,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     switch (eventType) {
       case 'message.sent':
-        console.log('SMS sent:', event.data?.payload);
+        console.log('SMS sent');
         break;
-
       case 'message.delivered':
-        console.log('SMS delivered:', event.data?.payload);
+        console.log('SMS delivered');
         break;
-
       case 'message.failed':
-        console.log('SMS failed:', event.data?.payload);
+        console.log('SMS failed');
         break;
-
       case 'message.received':
-        console.log('SMS received:', event.data?.payload);
+        console.log('SMS received');
         break;
-
       default:
-        console.log('Unhandled SMS event type:', eventType);
+        console.log('SMS event type:', eventType || 'unknown');
     }
 
     // Always return 200 to acknowledge receipt
@@ -56,12 +54,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error) {
-    console.error('SMS webhook processing error:', error);
-    
-    // Still return 200 to prevent Telnyx from retrying
+    // Never crash - always acknowledge receipt
+    console.error('SMS webhook error:', error);
     return res.status(200).json({
-      success: false,
-      error: 'Webhook processing error',
+      success: true,
+      message: 'Webhook received with errors',
     });
   }
 }

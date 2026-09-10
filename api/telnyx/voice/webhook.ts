@@ -3,8 +3,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 /**
  * POST /api/telnyx/voice/webhook
  * Handles Telnyx Voice API webhook events
+ * Always returns 200 to acknowledge receipt (prevents Telnyx retries)
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  // Set JSON content type
+  res.setHeader('Content-Type', 'application/json');
+
   // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -14,14 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const event = req.body;
+    const event = req.body || {};
 
     // Log the webhook event (without sensitive data)
     console.log('Telnyx webhook received:', {
-      event_type: event.data?.event_type,
-      call_control_id: event.data?.payload?.call_control_id,
-      call_leg_id: event.data?.payload?.call_leg_id,
-      call_session_id: event.data?.payload?.call_session_id,
+      event_type: event.data?.event_type || 'unknown',
+      call_control_id: event.data?.payload?.call_control_id || 'unknown',
       timestamp: new Date().toISOString(),
     });
 
@@ -30,31 +32,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     switch (eventType) {
       case 'call.initiated':
-        console.log('Call initiated:', event.data?.payload);
+        console.log('Call initiated');
         break;
-
       case 'call.answered':
-        console.log('Call answered:', event.data?.payload);
+        console.log('Call answered');
         break;
-
       case 'call.hangup':
-        console.log('Call hangup:', event.data?.payload);
+        console.log('Call hangup');
         break;
-
       case 'call.failed':
-        console.log('Call failed:', event.data?.payload);
+        console.log('Call failed');
         break;
-
-      case 'call.machine.detection.ended':
-        console.log('Machine detection ended:', event.data?.payload);
-        break;
-
-      case 'call.recording.saved':
-        console.log('Recording saved:', event.data?.payload);
-        break;
-
       default:
-        console.log('Unhandled event type:', eventType);
+        console.log('Event type:', eventType || 'unknown');
     }
 
     // Always return 200 to acknowledge receipt
@@ -64,12 +54,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error) {
-    console.error('Webhook processing error:', error);
-    
-    // Still return 200 to prevent Telnyx from retrying
+    // Never crash - always acknowledge receipt
+    console.error('Webhook error:', error);
     return res.status(200).json({
-      success: false,
-      error: 'Webhook processing error',
+      success: true,
+      message: 'Webhook received with errors',
     });
   }
 }
