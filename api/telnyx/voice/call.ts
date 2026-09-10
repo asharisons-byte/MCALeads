@@ -1,157 +1,142 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getTelnyxConfig, validatePhoneNumber, sanitizePhoneNumber, TELNYX_API_BASE } from '../config';
 
 /**
- * Telnyx Voice - Initiate Outbound Call
- * 
- * Creates an outbound call via Telnyx Voice API
- * Production URL: https://mca.marketingcharmagency.com/api/telnyx/voice/call
- * 
- * Request body:
- * {
- *   "to": "+1234567890",        // Required: destination phone number
- *   "leadId": "uuid",           // Optional: lead ID for tracking
- *   "clientState": "base64"     // Optional: client state for webhook context
- * }
- * 
- * Response:
- * {
- *   "success": true,
- *   "callControlId": "uuid",
- *   "callLegId": "uuid",
- *   "status": "initiated"
- * }
+ * POST /api/telnyx/voice/call
+ * Initiates an outbound call via Telnyx Voice API
+ * Validates phone number BEFORE making any API calls
  */
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set JSON content type immediately
+  res.setHeader('Content-Type', 'application/json');
 
-interface CallRequest {
-  to: string;
-  leadId?: string;
-  clientState?: string;
-}
-
-interface TelnyxCallResponse {
-  data: {
-    call_control_id: string;
-    call_leg_id: string;
-    call_session_id: string;
-    client_state?: string;
-    is_alive: boolean;
-    record_type: string;
-  };
-}
-
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse
-) {
-  // Only accept POST requests
-  if (request.method !== 'POST') {
-    return response.status(405).json({
+  // Only allow POST
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      success: false,
       error: 'Method not allowed',
-      message: 'This endpoint only accepts POST requests',
     });
   }
 
   try {
-    // Get Telnyx configuration (server-side only)
-    const config = getTelnyxConfig();
-
-    // Parse request body
-    const { to, leadId, clientState } = request.body as CallRequest;
-
-    // Validate destination number
-    if (!to) {
-      return response.status(400).json({
-        error: 'Missing destination number',
-        message: 'The "to" parameter is required',
+    // Validate request body exists
+    if (!req.body) {
+      return res.status(400).json({
+        success: false,
+        error: 'Request body is required',
       });
     }
 
-    if (!validatePhoneNumber(to)) {
-      return response.status(400).json({
-        error: 'Invalid phone number',
-        message: 'Phone number must be in E.164 format (e.g., +1234567890)',
+    const { to, leadId } = req.body;
+
+    // Validate phone number is provided
+    if (!to || typeof to !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Phone number is required',
       });
     }
 
-    const sanitizedTo = sanitizePhoneNumber(to);
+    // Validate E.164 format BEFORE any other processing
+    const e164Regex = /^\+[1-9]\d{1,14}$/;
+    if (!e164Regex.test(to)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid phone number format. Use E.164 format (e.g., +1234567890)',
+      });
+    }
 
-    // Prepare client state for webhook context
-    const encodedClientState = clientState || Buffer.from(
-      JSON.stringify({
-        leadId: leadId || null,
-        initiatedAt: new Date().toISOString(),
-      })
-    ).toString('base64').substring(0, 256); // Telnyx limit
+    // Check environment variables
+    const apiKey = process.env.TELNYX_API_KEY;
+    const phoneNumber = process.env.TELNYX_PHONE_NUMBER;
+    const voiceApplicationId = process.env.TELNYX_VOICE_APPLICATION_ID;
 
-    // Call Telnyx API
-    const telnyxResponse = await fetch(`${TELNYX_API_BASE}/calls`, {
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'Telnyx API key is not configured',
+      });
+    }
+
+    if (!phoneNumber) {
+      return res.status(500).json({
+        success: false,
+        error: 'Telnyx phone number is not configured',
+      });
+    }
+
+    if (!voiceApplicationId) {
+      return res.status(500).json({
+        success: false,
+        error: 'Telnyx Voice Application ID is not configured',
+      });
+    }
+
+    // Prepare Telnyx API request
+    const webhookUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}/api/telnyx/voice/webhook`
+      : 'https://mca.marketingcharmagency.com/api/telnyx/voice/webhook';
+
+    const telnyxPayload = {
+      connection_id: voiceApplicationId,
+      to: to,
+      from: phoneNumber,
+      webhook_url: webhookUrl,
+      webhook_url_method: 'POST',
+      client_state: leadId || 'manual-dial',
+    };
+
+    // Make Telnyx API call
+    const response = await fetch('https://api.telnyx.com/v2/calls', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        connection_id: config.voiceApplicationId,
-        to: sanitizedTo,
-        from: config.phoneNumber,
-        client_state: encodedClientState,
-        webhook_url: 'https://mca.marketingcharmagency.com/api/telnyx/voice/webhook',
-        webhook_url_method: 'POST',
-      }),
+      body: JSON.stringify(telnyxPayload),
     });
 
-    // Handle Telnyx API errors
-    if (!telnyxResponse.ok) {
-      const errorData = await telnyxResponse.json().catch(() => ({}));
-      
-      console.error('[Telnyx Call] API error:', {
-        status: telnyxResponse.status,
-        statusText: telnyxResponse.statusText,
+    // Handle Telnyx API response
+    if (!response.ok) {
+      let errorDetail = 'Unknown error';
+      try {
+        const errorData = await response.json();
+        errorDetail = errorData.errors?.[0]?.detail || response.statusText;
+      } catch {
+        errorDetail = response.statusText;
+      }
+
+      console.error('Telnyx API error:', {
+        status: response.status,
+        error: errorDetail,
       });
 
-      // Don't expose full error details to client
-      return response.status(telnyxResponse.status).json({
-        error: 'Telnyx API error',
-        message: 'Failed to initiate call',
-        statusCode: telnyxResponse.status,
+      return res.status(response.status).json({
+        success: false,
+        error: `Telnyx API error: ${errorDetail}`,
       });
     }
 
     // Parse successful response
-    const callData = (await telnyxResponse.json()) as TelnyxCallResponse;
+    const data = await response.json();
 
-    console.log('[Telnyx Call] Call initiated successfully', {
-      callControlId: callData.data.call_control_id,
-      to: sanitizedTo,
-      leadId: leadId || 'none',
-    });
-
-    // Return safe response (no sensitive data)
-    return response.status(200).json({
+    return res.status(200).json({
       success: true,
-      callControlId: callData.data.call_control_id,
-      callLegId: callData.data.call_leg_id,
-      status: 'initiated',
-      to: sanitizedTo,
-      from: config.phoneNumber,
+      callControlId: data.data?.call_control_id,
+      callLegId: data.data?.call_leg_id,
+      callSessionId: data.data?.call_session_id,
+      status: data.data?.status || 'initiated',
+      to: to,
+      from: phoneNumber,
+      leadId: leadId || null,
     });
 
   } catch (error) {
-    // Handle configuration errors
-    if (error instanceof Error && error.message.includes('TELNYX_API_KEY')) {
-      console.error('[Telnyx Call] Configuration error:', error.message);
-      return response.status(500).json({
-        error: 'Server configuration error',
-        message: 'Telnyx API is not configured',
-      });
-    }
-
-    // Handle other errors
-    console.error('[Telnyx Call] Unexpected error:', error);
-    return response.status(500).json({
+    // Never crash - always return JSON
+    console.error('Call endpoint error:', error);
+    
+    return res.status(500).json({
+      success: false,
       error: 'Internal server error',
-      message: 'An unexpected error occurred',
     });
   }
 }

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * POST /api/telnyx/voice/webhook
- * Handles Telnyx Voice API webhook events
+ * POST /api/telnyx/sms/webhook
+ * Handles Telnyx Messaging API webhook events
  * Always returns 200 to acknowledge receipt (prevents Telnyx retries)
  */
 export default function handler(req: VercelRequest, res: VercelResponse) {
@@ -21,9 +21,9 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     const event = req.body || {};
 
     // Log the webhook event (without sensitive data)
-    console.log('Telnyx webhook received:', {
+    console.log('Telnyx SMS webhook received:', {
       event_type: event.data?.event_type || 'unknown',
-      call_control_id: event.data?.payload?.call_control_id || 'unknown',
+      message_id: event.data?.payload?.id || 'unknown',
       timestamp: new Date().toISOString(),
     });
 
@@ -31,20 +31,20 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     const eventType = event.data?.event_type;
 
     switch (eventType) {
-      case 'call.initiated':
-        console.log('Call initiated');
+      case 'message.sent':
+        console.log('SMS sent');
         break;
-      case 'call.answered':
-        console.log('Call answered');
+      case 'message.delivered':
+        console.log('SMS delivered');
         break;
-      case 'call.hangup':
-        console.log('Call hangup');
+      case 'message.failed':
+        console.log('SMS failed');
         break;
-      case 'call.failed':
-        console.log('Call failed');
+      case 'message.received':
+        console.log('SMS received');
         break;
       default:
-        console.log('Event type:', eventType || 'unknown');
+        console.log('SMS event type:', eventType || 'unknown');
     }
 
     // Always return 200 to acknowledge receipt
@@ -55,7 +55,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error) {
     // Never crash - always acknowledge receipt
-    console.error('Webhook error:', error);
+    console.error('SMS webhook error:', error);
     return res.status(200).json({
       success: true,
       message: 'Webhook received with errors',

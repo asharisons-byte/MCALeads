@@ -1,54 +1,47 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * Telnyx Configuration Status
- * 
- * Returns whether Telnyx is configured on the server
- * Production URL: https://mca.marketingcharmagency.com/api/telnyx/status
- * 
- * This endpoint does NOT expose any secrets or API keys.
+ * GET /api/telnyx/status
+ * Returns Telnyx configuration status (no secrets exposed)
+ * This is the simplest possible endpoint - no external API calls
  */
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  // Set JSON content type
+  res.setHeader('Content-Type', 'application/json');
 
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse
-) {
-  // Only accept GET requests
-  if (request.method !== 'GET') {
-    return response.status(405).json({
+  // Only allow GET
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      success: false,
       error: 'Method not allowed',
-      message: 'This endpoint only accepts GET requests',
     });
   }
 
   try {
-    // Check if Telnyx API key is configured (server-side only)
+    // Read environment variables directly
     const apiKey = process.env.TELNYX_API_KEY;
-    const phoneNumber = process.env.TELNYX_PHONE_NUMBER || '+14052853816';
+    const phoneNumber = process.env.TELNYX_PHONE_NUMBER;
     const voiceApplicationId = process.env.TELNYX_VOICE_APPLICATION_ID;
 
-    const hasApiKey = !!apiKey;
-    const hasPhoneNumber = !!phoneNumber;
-    const hasVoiceApplicationId = !!voiceApplicationId;
-    
-    // Telnyx is configured if we have at least the API key
-    const isConfigured = hasApiKey;
-
-    // Return safe diagnostic status (no secrets)
-    return response.status(200).json({
-      configured: isConfigured,
-      hasApiKey,
-      hasPhoneNumber,
-      hasVoiceApplicationId,
-      phoneNumber: isConfigured ? phoneNumber : null,
+    // Return configuration status (no secrets)
+    return res.status(200).json({
+      success: true,
+      configured: !!apiKey,
+      hasApiKey: !!apiKey,
+      hasPhoneNumber: !!phoneNumber,
+      hasVoiceApplicationId: !!voiceApplicationId,
+      phoneNumber: phoneNumber || null,
     });
-
   } catch (error) {
-    console.error('[Telnyx Status] Error checking configuration:', error);
-    
-    return response.status(500).json({
-      error: 'Status check failed',
-      message: 'An error occurred while checking configuration',
+    // Never crash - always return JSON
+    console.error('Status endpoint error:', error);
+    return res.status(200).json({
+      success: false,
+      configured: false,
+      hasApiKey: false,
+      hasPhoneNumber: false,
+      hasVoiceApplicationId: false,
+      error: 'Internal error checking configuration',
     });
   }
 }
